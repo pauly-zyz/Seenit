@@ -1,5 +1,6 @@
 import { z } from "zod";
 
+import { checkOutputSchema } from "./output-schema.js";
 import { PersonhoodTier } from "./personhood.js";
 
 export const geoPointSchema = z.object({
@@ -24,9 +25,9 @@ export const baseUnitsSchema = z
  * A JSON Schema (object form) describing the structured answer the AI vision
  * step must return, e.g. { type: "object", properties: { open: { type: "boolean" } } }.
  */
-export const outputSchemaSchema = z
-  .record(z.string(), z.unknown())
-  .refine((s) => s.type === "object", 'outputSchema must have type: "object"');
+export const outputSchemaSchema = z.record(z.string(), z.unknown()).superRefine((schema, ctx) => {
+  for (const message of checkOutputSchema(schema)) ctx.addIssue({ code: "custom", message });
+});
 
 /** Mission spec as created by an AI agent (MCP) or a funder (dashboard). */
 export const missionSpecSchema = z

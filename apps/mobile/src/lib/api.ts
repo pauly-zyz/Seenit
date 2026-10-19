@@ -87,6 +87,7 @@ export type SubmissionStatus =
   | "chain_failed"
   | "processing"
   | "ready"
+  | "needs_review"
   | "accepted"
   | "rejected";
 

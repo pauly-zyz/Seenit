@@ -3,6 +3,7 @@ export * from "./token.js";
 export * from "./personhood.js";
 export * from "./geo.js";
 export * from "./mission.js";
+export * from "./output-schema.js";
 export * from "./capture.js";
 export * from "./abi/index.js";
 export * from "./deployments.js";

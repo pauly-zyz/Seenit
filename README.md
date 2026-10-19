@@ -96,26 +96,41 @@ The server speaks MCP over stdio. To try it with an MCP client, build it and poi
 
 ### API (apps/web)
 
-| Endpoint                                            | Auth                  | What it does                                                                             |
-| --------------------------------------------------- | --------------------- | ---------------------------------------------------------------------------------------- |
-| `GET /api/auth/nonce`                               | none                  | Nonce for Sign-In with Ethereum                                                          |
-| `POST /api/auth/verify`                             | none                  | Verify the signed SIWE message; returns a session token (also set as an httpOnly cookie) |
-| `POST /api/auth/logout`                             | contributor           | End the session                                                                          |
-| `POST /api/missions`                                | API key               | Create a mission; returns the `approve` + `createMission` transactions to sign           |
-| `POST /api/missions/:id/confirm`                    | API key               | Activate the mission from its mined `createMission` tx                                   |
-| `GET /api/missions/nearby?lat&lng[&radiusKm&limit]` | none                  | Active missions with free slots, closest first                                           |
-| `POST /api/submissions/upload-url`                  | contributor           | Signed R2 upload URL, only inside the mission radius and with enough tier                |
-| `POST /api/submissions`                             | contributor           | Finalize: verify file hash, GPS and time, `recordSubmission` on-chain, queue AI          |
-| `POST /api/submissions/:id/accept`                  | API key               | Accept on-chain (contributor paid minus fee)                                             |
-| `POST /api/submissions/:id/reject`                  | API key               | Reject on-chain within the review window (`reason` ≤ 32 bytes)                           |
-| `GET /api/missions/:id/results`                     | API key               | Accepted answers + short-lived URLs to blurred media + on-chain proof                    |
-| `GET /api/cron/indexer`                             | `Bearer $CRON_SECRET` | Sync MissionEscrow events into the database                                              |
+| Endpoint                                            | Auth                  | What it does                                                                              |
+| --------------------------------------------------- | --------------------- | ----------------------------------------------------------------------------------------- |
+| `GET /api/auth/nonce`                               | none                  | Nonce for Sign-In with Ethereum                                                           |
+| `POST /api/auth/verify`                             | none                  | Verify the signed SIWE message; returns a session token (also set as an httpOnly cookie)  |
+| `POST /api/auth/logout`                             | contributor           | End the session                                                                           |
+| `POST /api/missions`                                | API key               | Create a mission; returns the `approve` + `createMission` transactions to sign            |
+| `POST /api/missions/:id/confirm`                    | API key               | Activate the mission from its mined `createMission` tx                                    |
+| `GET /api/missions/nearby?lat&lng[&radiusKm&limit]` | none                  | Active missions with free slots, closest first                                            |
+| `POST /api/submissions/upload-url`                  | contributor           | Signed R2 upload URL, only inside the mission radius and with enough tier                 |
+| `POST /api/submissions`                             | contributor           | Finalize: verify file hash, GPS and time, `recordSubmission` on-chain, queue AI           |
+| `POST /api/submissions/:id/accept`                  | API key               | Accept on-chain (contributor paid minus fee)                                              |
+| `POST /api/submissions/:id/reject`                  | API key               | Reject on-chain within the review window (`reason` ≤ 32 bytes)                            |
+| `GET /api/missions/:id/results`                     | API key               | Accepted answers + short-lived URLs to blurred media + on-chain proof                     |
+| `GET /api/missions/:id/submissions[?status]`        | API key               | Review queue: AI answer, confidence, quality flags, blurred frames (`needs_review` first) |
+| `GET/PUT/DELETE /api/webhook`                       | API key               | Webhook URL for `submission.processed`; `PUT` returns the signing secret once             |
+| `GET /api/mission-templates`                        | none                  | Ready-made output schemas: `stock_check`, `store_open`, `construction_progress`, ...      |
+| `GET /api/cron/indexer`                             | `Bearer $CRON_SECRET` | Sync MissionEscrow events into the database                                               |
 
 Contributors send `Authorization: Bearer <session token>`; funders and agents send `x-api-key: sk_...`. Errors are always `{ "error": { "code", "message", "details", "requestId" } }`. Every route is rate limited (429 with `Retry-After`) and logs one JSON line per request.
 
 Proof of personhood: a verified identity is reduced to a provider-scoped nullifier, hashed (keccak256) and written to `PersonhoodRegistry` with the attester key. Only the hash and a non-personal summary (e.g. the Passport score) are stored; passport data is never requested from Self. A nullifier already linked to another wallet is rejected. Providers are adapters (`apps/web/src/server/personhood`), so adding one (e.g. World ID) does not touch routes or storage.
 
 Run the indexer continuously with `pnpm -F @seenit/web indexer`, or call `/api/cron/indexer` every minute from a scheduler.
+
+### Submission worker
+
+`pnpm -F @seenit/web worker` runs the processing jobs from the Postgres queue (`jobs` table, claimed with `FOR UPDATE SKIP LOCKED`, so several workers can run side by side). It needs ffmpeg/ffprobe, `MEDIA_ENCRYPTION_KEYS` and `ANTHROPIC_API_KEY`. For each recorded submission it:
+
+1. Checks the upload against the on-chain SHA-256, then takes the photo (normalized, metadata stripped) or up to 8 evenly spaced key frames from the video (ffmpeg).
+2. Detects faces and licence plates (Claude, structured output) and pixelates them. Only blurred frames are stored for the funder (`blurred/<id>/frame-N.jpg`); videos reach funders as blurred key frames. If detection is declined, nothing is published (fail closed).
+3. Sends the blurred frames, the mission instructions and the mission's `outputSchema` to Claude with a JSON-schema structured output: `{ answer, confidence, reasoning, quality }`. The answer is validated with Zod against the funder's original schema (including constraints the model can't enforce).
+4. Flags `needs_review` on low confidence, no/invalid answer, irrelevant, blurry or dark frames (also measured locally), screen recaptures, videos over the limit, unreadable media or a hash mismatch.
+5. Encrypts the original (AES-256-GCM envelope) into `disputes/<id>.enc`, deletes the plaintext upload, schedules the encrypted copy's deletion after `ORIGINAL_RETENTION_DAYS`, and queues the funder webhook.
+
+Webhooks are POSTs with `Seenit-Event`, `Seenit-Delivery` and `Seenit-Signature: t=<unix>,v1=<hex HMAC-SHA256(secret, "t.body")>`. Failed deliveries retry with backoff. Targets must be public https hosts (checked again after DNS resolution).
 
 ### Contracts
 

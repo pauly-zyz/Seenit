@@ -1,6 +1,8 @@
 import { jobs, sql, type Database } from "@seenit/db";
 
 export const JOB_AI_PROCESS = "submission.ai_process";
+export const JOB_WEBHOOK = "webhook.deliver";
+export const JOB_PURGE_ORIGINAL = "submission.purge_original";
 
 /** `runAfter` should come from the services clock so it lines up with `claimJob(now)`. */
 export async function enqueueJob(
@@ -37,10 +39,19 @@ export async function completeJob(db: Database, id: string) {
     .where(sql`${jobs.id} = ${id}`);
 }
 
-/** Re-queues with exponential backoff, or marks failed after `maxAttempts`. */
-export async function failJob(db: Database, id: string, error: string, now: Date, maxAttempts = 5) {
+/**
+ * Re-queues with exponential backoff, or marks failed after `maxAttempts`.
+ * Returns true when the job failed for good.
+ */
+export async function failJob(
+  db: Database,
+  id: string,
+  error: string,
+  now: Date,
+  maxAttempts = 5,
+): Promise<boolean> {
   const job = await db.query.jobs.findFirst({ where: (j, { eq }) => eq(j.id, id) });
-  if (!job) return;
+  if (!job) return false;
   const failed = job.attempts >= maxAttempts;
   await db
     .update(jobs)
@@ -51,4 +62,16 @@ export async function failJob(db: Database, id: string, error: string, now: Date
       runAfter: new Date(now.getTime() + 2 ** job.attempts * 30_000),
     })
     .where(sql`${jobs.id} = ${id}`);
+  return failed;
+}
+
+/** Puts back jobs whose worker died mid-run (still "running" after `staleMs`). */
+export async function requeueStaleJobs(db: Database, now: Date, staleMs: number) {
+  const cutoff = new Date(now.getTime() - staleMs);
+  const rows = await db
+    .update(jobs)
+    .set({ status: "queued", lockedAt: null, lastError: "worker lost the job" })
+    .where(sql`${jobs.status} = 'running' and ${jobs.lockedAt} < ${cutoff}`)
+    .returning({ id: jobs.id });
+  return rows.length;
 }

@@ -3,9 +3,10 @@ import { createDb, type Database } from "@seenit/db";
 import { type RegistryGateway, ViemRegistryGateway } from "../chain/registry-gateway";
 import { ViemEscrowGateway } from "../chain/viem-gateway";
 import type { EscrowGateway } from "../chain/types";
-import { type AppConfig, parseEnv, toAppConfig } from "../config";
+import { type AppConfig, parseEnv, type ServerEnv, toAppConfig } from "../config";
 import { createLogger, type Logger } from "../logger";
 import { createPersonhoodProviders, type PersonhoodProviders } from "../personhood";
+import { MediaCipher } from "../processing/cipher";
 import { R2Storage } from "../storage/r2";
 import type { MediaStorage } from "../storage/types";
 
@@ -18,6 +19,8 @@ export interface Services {
   registry: RegistryGateway | null;
   /** Enabled personhood providers (empty when the registry is not configured). */
   personhood: PersonhoodProviders;
+  /** Envelope encryption (dispute archive, webhook secrets). Null when no key is configured. */
+  cipher: MediaCipher | null;
   logger: Logger;
   config: AppConfig;
   now: () => Date;
@@ -30,12 +33,16 @@ export function getServices(): Services {
   return current;
 }
 
+/** Builds everything from the environment (also the base of the worker's services). */
+export function createServicesFromEnv(): Services {
+  return buildServices(parseEnv());
+}
+
 export function setServices(services: Services | undefined): void {
   current = services;
 }
 
-function createServicesFromEnv(): Services {
-  const env = parseEnv();
+export function buildServices(env: ServerEnv): Services {
   const config = toAppConfig(env);
   const registry = env.ATTESTER_PRIVATE_KEY
     ? new ViemRegistryGateway({
@@ -86,6 +93,7 @@ function createServicesFromEnv(): Services {
               : undefined,
         })
       : new Map(),
+    cipher: env.MEDIA_ENCRYPTION_KEYS ? MediaCipher.fromEnv(env.MEDIA_ENCRYPTION_KEYS) : null,
     logger: createLogger(config.logLevel),
     config,
     now: () => new Date(),

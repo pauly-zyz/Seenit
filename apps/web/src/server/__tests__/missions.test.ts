@@ -311,7 +311,13 @@ describe("GET /api/missions/:id/results", () => {
         blurredMediaKey: "submissions/a/blurred.jpg",
         mediaHash: "a".repeat(64),
         status: "accepted",
-        aiResult: { is_open: false, sign_text: "Closed for renovation" },
+        aiResult: {
+          answer: { is_open: false, sign_text: "Closed for renovation" },
+          confidence: 0.97,
+          reasoning: "The door has a closed notice.",
+          needsReview: false,
+          reviewReasons: [],
+        },
         aiConfidence: 0.97,
         onchainId: 1n,
         recordTxHash: "0xrec",
@@ -340,6 +346,7 @@ describe("GET /api/missions/:id/results", () => {
     expect(first.answer).toEqual({ is_open: false, sign_text: "Closed for renovation" });
     expect(first.confidence).toBeCloseTo(0.97);
     expect(first.media.url).toContain("blurred.jpg");
+    expect(first.reasoning).toBe("The door has a closed notice.");
     expect(first.proof).toMatchObject({
       mediaSha256: "a".repeat(64),
       recordTxHash: "0xrec",

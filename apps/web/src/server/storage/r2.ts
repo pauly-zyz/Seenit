@@ -1,7 +1,16 @@
 import { createHash } from "node:crypto";
+import { createReadStream, createWriteStream } from "node:fs";
+import { stat } from "node:fs/promises";
 import type { Readable } from "node:stream";
+import { pipeline } from "node:stream/promises";
 
-import { GetObjectCommand, NoSuchKey, PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
+import {
+  DeleteObjectCommand,
+  GetObjectCommand,
+  NoSuchKey,
+  PutObjectCommand,
+  S3Client,
+} from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 
 import type { MediaStorage } from "./types";
@@ -75,5 +84,33 @@ export class R2Storage implements MediaStorage {
       if (err instanceof NoSuchKey || (err as { name?: string }).name === "NoSuchKey") return null;
       throw err;
     }
+  }
+
+  async download(key: string, destPath: string) {
+    try {
+      const res = await this.client.send(new GetObjectCommand({ Bucket: this.bucket, Key: key }));
+      await pipeline(res.Body as Readable, createWriteStream(destPath));
+      return { size: (await stat(destPath)).size, contentType: res.ContentType };
+    } catch (err) {
+      if (err instanceof NoSuchKey || (err as { name?: string }).name === "NoSuchKey") return null;
+      throw err;
+    }
+  }
+
+  async upload(key: string, body: Buffer | { path: string }, contentType: string) {
+    const isFile = !Buffer.isBuffer(body);
+    await this.client.send(
+      new PutObjectCommand({
+        Bucket: this.bucket,
+        Key: key,
+        ContentType: contentType,
+        Body: isFile ? createReadStream(body.path) : body,
+        ContentLength: isFile ? (await stat(body.path)).size : body.length,
+      }),
+    );
+  }
+
+  async delete(key: string) {
+    await this.client.send(new DeleteObjectCommand({ Bucket: this.bucket, Key: key }));
   }
 }

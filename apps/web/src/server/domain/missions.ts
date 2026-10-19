@@ -21,8 +21,9 @@ import { applyMissionCreated } from "./sync";
 
 export type MissionRow = InferSelectModel<typeof missions>;
 
-/** Submissions that hold (or are about to hold) a slot. */
-export const SLOT_HOLDING = ["processing", "ready", "accepted"] as const;
+import { SLOT_HOLDING } from "./statuses";
+
+export { SLOT_HOLDING };
 
 /** Spec hash anchored on-chain. Including the mission id makes it unique per mission. */
 export function computeSpecHash(id: string, spec: MissionSpec): Hex {

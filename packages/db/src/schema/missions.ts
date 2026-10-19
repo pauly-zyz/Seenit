@@ -78,8 +78,16 @@ export const submissions = pgTable(
       .references(() => users.id),
     /** Object key of the original upload (never shared with funders). */
     mediaKey: text("media_key").notNull(),
-    /** Object key of the face/plate-blurred copy produced by the AI pipeline. */
+    /** Object key of the face/plate-blurred copy produced by the AI pipeline (first frame). */
     blurredMediaKey: text("blurred_media_key"),
+    /** All blurred frames shared with the funder (videos are delivered as key frames). */
+    blurredFrameKeys: jsonb("blurred_frame_keys").$type<string[]>(),
+    /** Encrypted original kept only for disputes (AES-256-GCM envelope). */
+    originalArchiveKey: text("original_archive_key"),
+    /** When the encrypted original is deleted. */
+    originalPurgeAt: timestamp("original_purge_at", { withTimezone: true }),
+    originalPurgedAt: timestamp("original_purged_at", { withTimezone: true }),
+    processedAt: timestamp("processed_at", { withTimezone: true }),
     /** SHA-256 hex of the original media, anchored on-chain. */
     mediaHash: text("media_hash"),
     mediaType: mediaType("media_type").notNull(),

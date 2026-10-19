@@ -13,6 +13,7 @@ import { privateKeyToAccount, generatePrivateKey } from "viem/accounts";
 import { createApiKey } from "../auth/api-keys";
 import { createSession } from "../auth/sessions";
 import type { AppConfig } from "../config";
+import { MediaCipher } from "../processing/cipher";
 import { setServices, type Services } from "../services";
 import { HumanPassportProvider } from "../personhood/human-passport";
 import { SelfProvider } from "../personhood/self";
@@ -41,7 +42,11 @@ export const testConfig: AppConfig = {
   tokenSymbol: "USDG",
   tokenDecimals: 6,
   captureMaxAgeMs: 6 * 3600_000,
+  webhookAllowHttp: false,
 };
+
+/** Fixed test master key (never used outside tests). */
+export const TEST_CIPHER = new MediaCipher("test", { test: Buffer.alloc(32, 7) });
 
 export const SELF_TEST_CONFIG = {
   appName: "Seenit",
@@ -85,6 +90,7 @@ export async function createHarness() {
     storage,
     registry,
     personhood: personhood as Services["personhood"],
+    cipher: TEST_CIPHER,
     logger: pino({ level: "silent" }),
     config: testConfig,
     now: () => now,

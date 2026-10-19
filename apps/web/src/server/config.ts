@@ -34,6 +34,31 @@ const schema = z.object({
     .min(5)
     .max(24 * 60)
     .default(360),
+  /**
+   * Master key(s) for the dispute archive and webhook secrets: "id:base64(32 bytes)[,id:...]",
+   * first one active. Required by the worker and for funder webhooks.
+   */
+  MEDIA_ENCRYPTION_KEYS: z.string().min(1).optional(),
+  /** Allow http:// and private webhook targets (local development only). */
+  WEBHOOK_ALLOW_HTTP: z.stringbool().default(false),
+
+  // --- Submission processing worker ---
+  /** Claude model for answer extraction and face/plate detection. */
+  AI_MODEL: z.string().min(1).default("claude-opus-5-5"),
+  AI_EFFORT: z.enum(["low", "medium", "high", "xhigh", "max"]).default("medium"),
+  /** Server-side fallback when a request is declined (Claude API only; turn off on other platforms). */
+  AI_SERVER_FALLBACK: z.stringbool().default(true),
+  /** Below this confidence a submission is marked needs_review. */
+  AI_REVIEW_CONFIDENCE: z.coerce.number().min(0).max(1).default(0.7),
+  /** Days the encrypted original is kept for disputes (must outlast the 14-day max review window). */
+  ORIGINAL_RETENTION_DAYS: z.coerce.number().int().min(15).max(365).default(30),
+  FFMPEG_PATH: z.string().default("ffmpeg"),
+  FFPROBE_PATH: z.string().default("ffprobe"),
+  MEDIA_BLUR_THRESHOLD: z.coerce.number().min(0).default(30),
+  MEDIA_DARK_THRESHOLD: z.coerce.number().min(0).max(255).default(35),
+  WORKER_CONCURRENCY: z.coerce.number().int().min(1).max(16).default(2),
+  WORKER_POLL_MS: z.coerce.number().int().min(100).default(2000),
+
   REWARD_TOKEN_SYMBOL: z.string().default("USDG"),
   REWARD_TOKEN_DECIMALS: z.coerce.number().int().min(0).max(18).default(6),
 
@@ -72,6 +97,7 @@ export type AppConfig = {
   tokenSymbol: string;
   tokenDecimals: number;
   captureMaxAgeMs: number;
+  webhookAllowHttp: boolean;
 };
 
 export type ServerEnv = z.infer<typeof schema>;
@@ -100,5 +126,6 @@ export function toAppConfig(env: ServerEnv): AppConfig {
     tokenSymbol: env.REWARD_TOKEN_SYMBOL,
     tokenDecimals: env.REWARD_TOKEN_DECIMALS,
     captureMaxAgeMs: env.CAPTURE_MAX_AGE_MINUTES * 60_000,
+    webhookAllowHttp: env.WEBHOOK_ALLOW_HTTP,
   };
 }

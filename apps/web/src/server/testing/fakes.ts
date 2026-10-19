@@ -1,4 +1,5 @@
 import { createHash } from "node:crypto";
+import { readFile, writeFile } from "node:fs/promises";
 
 import type { Address, Hex } from "viem";
 
@@ -144,6 +145,22 @@ export class FakeStorage implements MediaStorage {
       size: obj.bytes.length,
       contentType: obj.contentType,
     };
+  }
+
+  async download(key: string, destPath: string) {
+    const obj = this.objects.get(key);
+    if (!obj) return null;
+    await writeFile(destPath, obj.bytes);
+    return { size: obj.bytes.length, contentType: obj.contentType };
+  }
+
+  async upload(key: string, body: Buffer | { path: string }, contentType: string) {
+    const bytes = Buffer.isBuffer(body) ? body : await readFile(body.path);
+    this.objects.set(key, { bytes, contentType });
+  }
+
+  async delete(key: string) {
+    this.objects.delete(key);
   }
 }
 

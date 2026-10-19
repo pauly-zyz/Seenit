@@ -13,6 +13,7 @@ export function submissionStatusLabel(status: SubmissionStatus): { label: string
       return { label: "Rejected", tone: "danger" };
     case "processing":
     case "ready":
+    case "needs_review": // under human review: still "processing" for the contributor
     case "chain_failed": // the server retries the on-chain record
       return { label: "Processing", tone: "warn" };
     case "awaiting_upload":

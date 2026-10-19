@@ -40,6 +40,8 @@ jobs:
         with:
           node-version: 22
           cache: pnpm
+      # The submission worker's tests extract frames from a generated video.
+      - run: sudo apt-get update && sudo apt-get install -y --no-install-recommends ffmpeg
       - run: pnpm install --frozen-lockfile
       - run: pnpm format:check
       - run: pnpm turbo run lint typecheck build test --filter=!@seenit/contracts

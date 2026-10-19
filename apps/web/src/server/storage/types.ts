@@ -15,4 +15,10 @@ export interface MediaStorage {
   presignDownload(key: string, expiresInSeconds: number): Promise<{ url: string; expiresAt: Date }>;
   /** Streams the object and hashes it. Null when the object does not exist. */
   sha256(key: string): Promise<{ sha256: string; size: number; contentType?: string } | null>;
+  /** Streams the object to a local file. Null when the object does not exist. */
+  download(key: string, destPath: string): Promise<{ size: number; contentType?: string } | null>;
+  /** Writes an object from memory or from a local file. */
+  upload(key: string, body: Buffer | { path: string }, contentType: string): Promise<void>;
+  /** Deletes an object (no error if it is already gone). */
+  delete(key: string): Promise<void>;
 }

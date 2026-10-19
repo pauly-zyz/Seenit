@@ -27,6 +27,8 @@ import type { Logger } from "../logger";
 import type { Services } from "../services";
 import { getFunderMission, type MissionRow, SLOT_HOLDING } from "./missions";
 import { effectiveTier } from "./personhood";
+import type { AiResult } from "./processing";
+import { isAwaitingDecision } from "./statuses";
 import { applySubmissionAccepted, applySubmissionRejected } from "./sync";
 
 type User = InferSelectModel<typeof users>;
@@ -328,7 +330,7 @@ function mapResolveError(err: unknown): never {
 
 export async function acceptSubmission(s: Services, funderId: string, submissionId: string) {
   const sub = await loadFunderSubmission(s.db, funderId, submissionId);
-  if (!["processing", "ready"].includes(sub.status) || sub.onchainId === null) {
+  if (!isAwaitingDecision(sub.status) || sub.onchainId === null) {
     throw new AppError("conflict", `Submission is ${sub.status} and cannot be accepted`);
   }
   let res;
@@ -359,7 +361,7 @@ export async function rejectSubmission(
   now: Date,
 ) {
   const sub = await loadFunderSubmission(s.db, funderId, submissionId);
-  if (!["processing", "ready"].includes(sub.status) || sub.onchainId === null) {
+  if (!isAwaitingDecision(sub.status) || sub.onchainId === null) {
     throw new AppError("conflict", `Submission is ${sub.status} and cannot be rejected`);
   }
   if (sub.reviewDeadline && sub.reviewDeadline < now) {
@@ -397,24 +399,23 @@ export async function getResults(s: Services, funderId: string, missionId: strin
   });
 
   const results = await Promise.all(
-    rows.map(async (r) => ({
-      submissionId: r.id,
-      capturedAt: r.capturedAt,
-      answer: r.aiResult,
-      confidence: r.aiConfidence,
-      media: r.blurredMediaKey
-        ? {
-            type: r.mediaType,
-            ...(await s.storage.presignDownload(r.blurredMediaKey, RESULT_URL_TTL_SECONDS)),
-          }
-        : null,
-      proof: {
-        mediaSha256: r.mediaHash,
-        onchainSubmissionId: r.onchainId,
-        recordTxHash: r.recordTxHash,
-        acceptTxHash: r.resolveTxHash,
-      },
-    })),
+    rows.map(async (r) => {
+      const ai = readAi(r);
+      return {
+        submissionId: r.id,
+        capturedAt: r.capturedAt,
+        answer: ai?.answer ?? null,
+        confidence: r.aiConfidence,
+        reasoning: ai?.reasoning ?? null,
+        media: await funderMedia(s, r),
+        proof: {
+          mediaSha256: r.mediaHash,
+          onchainSubmissionId: r.onchainId,
+          recordTxHash: r.recordTxHash,
+          acceptTxHash: r.resolveTxHash,
+        },
+      };
+    }),
   );
 
   return {
@@ -425,5 +426,91 @@ export async function getResults(s: Services, funderId: string, missionId: strin
       maxCaptures: mission.maxCaptures,
     },
     results,
+  };
+}
+
+/** Statuses a funder can see while reviewing (everything recorded on-chain). */
+const REVIEWABLE = ["processing", "ready", "needs_review", "accepted", "rejected"] as const;
+
+/**
+ * Review queue for a mission: AI answer, confidence, quality flags and blurred frames for every
+ * recorded submission. needs_review first, then by capture time.
+ */
+export async function listMissionSubmissions(
+  s: Services,
+  funderId: string,
+  missionId: string,
+  filter?: (typeof REVIEWABLE)[number],
+) {
+  const mission: MissionRow = await getFunderMission(s.db, funderId, missionId);
+  const rows = await s.db.query.submissions.findMany({
+    where: and(
+      eq(submissions.missionId, mission.id),
+      inArray(submissions.status, filter ? [filter] : [...REVIEWABLE]),
+    ),
+    orderBy: (t, { asc }) => [asc(t.capturedAt)],
+  });
+  const items = await Promise.all(
+    rows.map(async (r) => {
+      const ai = readAi(r);
+      return {
+        submissionId: r.id,
+        status: r.status,
+        capturedAt: r.capturedAt,
+        reviewDeadline: r.reviewDeadline,
+        location:
+          r.lat !== null && r.lng !== null
+            ? { lat: r.lat, lng: r.lng, accuracyMeters: r.gpsAccuracyMeters }
+            : null,
+        ai: ai
+          ? {
+              answer: ai.answer,
+              confidence: ai.confidence,
+              reasoning: ai.reasoning,
+              needsReview: ai.needsReview,
+              reviewReasons: ai.reviewReasons,
+              quality: ai.quality,
+              privacy: ai.privacy,
+              processedAt: ai.processedAt,
+            }
+          : null,
+        media: await funderMedia(s, r),
+        proof: {
+          mediaSha256: r.mediaHash,
+          onchainSubmissionId: r.onchainId,
+          recordTxHash: r.recordTxHash,
+        },
+      };
+    }),
+  );
+  items.sort((a, b) => Number(b.status === "needs_review") - Number(a.status === "needs_review"));
+  return {
+    mission: { id: mission.id, title: mission.title, status: mission.status },
+    submissions: items,
+  };
+}
+
+function readAi(r: SubmissionRow): AiResult | null {
+  return r.aiResult && "reviewReasons" in r.aiResult ? (r.aiResult as unknown as AiResult) : null;
+}
+
+/** Short-lived URLs to the blurred frames only. The original upload is never exposed. */
+async function funderMedia(s: Services, r: SubmissionRow) {
+  const keys = r.blurredFrameKeys?.length
+    ? r.blurredFrameKeys
+    : r.blurredMediaKey
+      ? [r.blurredMediaKey]
+      : [];
+  if (keys.length === 0) return null;
+  const frames = await Promise.all(
+    keys.map((k) => s.storage.presignDownload(k, RESULT_URL_TTL_SECONDS)),
+  );
+  return {
+    type: r.mediaType,
+    /** Videos are shared as blurred key frames. */
+    format: "jpeg_frames" as const,
+    frames,
+    url: frames[0]!.url,
+    expiresAt: frames[0]!.expiresAt,
   };
 }

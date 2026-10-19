@@ -14,6 +14,7 @@ import type { Hex } from "viem";
 import type { EscrowEvent, MissionCreatedEvent } from "../chain/types";
 import type { Logger } from "../logger";
 import { enqueueJob, JOB_AI_PROCESS } from "../jobs";
+import { AWAITING_DECISION } from "./statuses";
 
 /**
  * Applies chain events to the database. Used by both the API (right after a tx) and the indexer
@@ -88,7 +89,7 @@ export async function applySubmissionAccepted(
       .where(
         and(
           eq(submissions.onchainId, ev.submissionId),
-          inArray(submissions.status, ["processing", "ready"]),
+          inArray(submissions.status, [...AWAITING_DECISION]),
         ),
       )
       .returning();
@@ -121,7 +122,7 @@ export async function applySubmissionRejected(
     .where(
       and(
         eq(submissions.onchainId, ev.submissionId),
-        inArray(submissions.status, ["processing", "ready"]),
+        inArray(submissions.status, [...AWAITING_DECISION]),
       ),
     );
 }

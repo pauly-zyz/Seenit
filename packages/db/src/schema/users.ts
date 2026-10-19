@@ -88,6 +88,10 @@ export const funders = pgTable(
     name: text("name").notNull(),
     /** Wallet that funds the escrow (lowercase). */
     wallet: text("wallet").notNull(),
+    /** Optional https endpoint notified when a submission has an AI result. */
+    webhookUrl: text("webhook_url"),
+    /** Webhook signing secret, encrypted with the server's media key (never stored in plain). */
+    webhookSecretEnc: text("webhook_secret_enc"),
     createdAt: createdAt(),
   },
   (t) => [index("funders_wallet_idx").on(t.wallet)],

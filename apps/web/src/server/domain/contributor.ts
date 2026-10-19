@@ -15,6 +15,7 @@ import { AppError, notFound } from "../errors";
 import type { Services } from "../services";
 import { publicMission, SLOT_HOLDING } from "./missions";
 import { effectiveTier } from "./personhood";
+import { isAwaitingDecision } from "./statuses";
 
 type User = InferSelectModel<typeof users>;
 
@@ -73,7 +74,7 @@ export async function listMySubmissions(s: Services, user: User) {
     .filter((r) => r.submission.status !== "awaiting_upload")
     .map(({ submission: sub, mission: m, payout: p }) => {
       if (p) earned += BigInt(p.amount);
-      if (sub.status === "processing" || sub.status === "ready") {
+      if (isAwaitingDecision(sub.status)) {
         const reward = BigInt(m.reward);
         pending += reward - (reward * BigInt(m.feeBps ?? 0)) / 10_000n;
       }
@@ -100,7 +101,7 @@ export async function listMySubmissions(s: Services, user: User) {
       earned: earned.toString(),
       pending: pending.toString(),
       accepted: items.filter((i) => i.status === "accepted").length,
-      inReview: items.filter((i) => i.status === "processing" || i.status === "ready").length,
+      inReview: items.filter((i) => isAwaitingDecision(i.status)).length,
       rejected: items.filter((i) => i.status === "rejected" || i.status === "rejected_precheck")
         .length,
       token: { symbol: s.config.tokenSymbol, decimals: s.config.tokenDecimals },

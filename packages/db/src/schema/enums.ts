@@ -27,6 +27,7 @@ export const missionStatus = pgEnum("mission_status", [
  * chain_failed: recordSubmission tx failed, can be retried
  * processing: recorded on-chain, queued for AI
  * ready: AI result available, waiting for funder decision
+ * needs_review: AI result available but low confidence or quality flags; a human should look
  * accepted / rejected: resolved on-chain
  */
 export const submissionStatus = pgEnum("submission_status", [
@@ -35,6 +36,7 @@ export const submissionStatus = pgEnum("submission_status", [
   "chain_failed",
   "processing",
   "ready",
+  "needs_review",
   "accepted",
   "rejected",
 ]);
