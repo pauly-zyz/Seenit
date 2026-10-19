@@ -1,8 +1,19 @@
+import { Agents } from "@/components/sections/agents";
+import { Answers } from "@/components/sections/answers";
+import { Contributors } from "@/components/sections/contributors";
+import { Developers } from "@/components/sections/developers";
+import { Hero } from "@/components/sections/hero";
+import { Trust } from "@/components/sections/trust";
+
 export default function Home() {
   return (
-    <main className="flex flex-1 flex-col items-center justify-center gap-3 px-6 text-center">
-      <h1 className="text-4xl font-semibold tracking-tight">Seenit</h1>
-      <p className="text-lg text-zinc-600 dark:text-zinc-400">Eyes on the ground for AI agents.</p>
+    <main>
+      <Hero />
+      <Agents />
+      <Answers />
+      <Developers />
+      <Contributors />
+      <Trust />
     </main>
   );
 }

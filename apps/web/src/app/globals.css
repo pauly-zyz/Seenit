@@ -1,26 +1,124 @@
 @import "tailwindcss";
 
+/* Theme is driven by data-theme on <html>, set before paint by ThemeScript. */
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --bg: #f7f7f2;
+  --surface: #ffffff;
+  --surface-2: #efefe8;
+  --line: #e2e2d9;
+  --fg: #0e1116;
+  --muted: #535a65;
+  --accent: #c8f051;
+  --accent-fg: #0e1116;
+  --accent-ink: #496600;
+  --verify: #0b7a6e;
+  --rec: #d93a3f;
+  --code-bg: #0e1116;
+  --code-line: #232833;
+  color-scheme: light;
+}
+
+[data-theme="dark"] {
+  --bg: #0b0d11;
+  --surface: #12151b;
+  --surface-2: #1a1e26;
+  --line: #262b35;
+  --fg: #edeff2;
+  --muted: #9ea6b2;
+  --accent: #c8f051;
+  --accent-fg: #0e1116;
+  --accent-ink: #c8f051;
+  --verify: #2dd4bf;
+  --rec: #f2555a;
+  --code-bg: #0f1217;
+  --code-line: #262b35;
+  color-scheme: dark;
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: ui-sans-serif, system-ui, sans-serif;
-  --font-mono: ui-monospace, SFMono-Regular, Menlo, monospace;
-}
+  --color-background: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-line: var(--line);
+  --color-foreground: var(--fg);
+  --color-muted: var(--muted);
+  --color-accent: var(--accent);
+  --color-accent-fg: var(--accent-fg);
+  --color-accent-ink: var(--accent-ink);
+  --color-verify: var(--verify);
+  --color-rec: var(--rec);
+  --color-code: var(--code-bg);
+  --color-code-line: var(--code-line);
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+  /* Code token colours (same in both themes, code panels are always dark). */
+  --color-tok-key: #c8f051;
+  --color-tok-string: #f6c983;
+  --color-tok-number: #8fd3fe;
+  --color-tok-keyword: #f2a7d0;
+  --color-tok-comment: #8e96a3;
+  --color-tok-punct: #b4bbc6;
+  --color-tok-plain: #e6e9ee;
+
+  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, SFMono-Regular, Menlo, monospace;
+
+  --animate-float: float 6s ease-in-out infinite;
+  --animate-pop: pop 6s ease-in-out infinite;
+  --animate-ping-slow: ping 2.4s cubic-bezier(0, 0, 0.2, 1) infinite;
+  --animate-blink: blink 1.2s steps(2, start) infinite;
+
+  @keyframes float {
+    0%,
+    100% {
+      transform: translateY(0);
+    }
+    50% {
+      transform: translateY(-8px);
+    }
+  }
+  @keyframes pop {
+    0%,
+    12% {
+      opacity: 0;
+      transform: translateY(-6px) scale(0.96);
+    }
+    18%,
+    70% {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+    78%,
+    100% {
+      opacity: 0;
+      transform: translateY(-6px) scale(0.96);
+    }
+  }
+  @keyframes blink {
+    to {
+      visibility: hidden;
+    }
   }
 }
 
+html {
+  scroll-behavior: smooth;
+  -webkit-tap-highlight-color: transparent;
+}
+
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: var(--font-sans);
+  background: var(--bg);
+  color: var(--fg);
+}
+
+::selection {
+  background: var(--accent);
+  color: var(--accent-fg);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
 }
