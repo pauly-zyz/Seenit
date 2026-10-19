@@ -1,0 +1,12 @@
+{
+  "name": "@seenit/contracts",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "build": "forge build",
+    "test": "forge test",
+    "lint": "forge fmt --check",
+    "coverage": "forge coverage --no-match-coverage '(test|script)/'",
+    "deploy:testnet": "forge script script/Deploy.s.sol --rpc-url robinhood_testnet --broadcast"
+  }
+}

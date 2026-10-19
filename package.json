@@ -1,0 +1,19 @@
+{
+  "name": "seenit",
+  "private": true,
+  "description": "Eyes on the ground for AI agents.",
+  "packageManager": "pnpm@10.28.0",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "build": "turbo run build",
+    "test": "turbo run test",
+    "typecheck": "turbo run typecheck",
+    "lint": "turbo run lint"
+  },
+  "devDependencies": {
+    "turbo": "^2.11.9",
+    "typescript": "^5.9.3"
+  }
+}
