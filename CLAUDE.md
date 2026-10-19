@@ -45,7 +45,11 @@ Tagline kerja: "Eyes on the ground for AI agents."
 - ESLint bersama ada di `packages/eslint-config` (`base`, `next`, `expo`). Prettier di root.
 - Tiap app punya `.env.example` sendiri. Variabel `NEXT_PUBLIC_*` / `EXPO_PUBLIC_*` masuk ke bundle klien: jangan isi secret.
 - Aturan bisnis yang ada di contract dan di `packages/shared` harus tetap sinkron:
-  - `requiredTier()` ↔ `MissionEscrow.createMission` (min Tier 1; Tier 2 bila reward > `tier1MaxReward`).
-  - `MissionStatus` / `SubmissionStatus` ↔ enum di `MissionEscrow.sol`.
-- Alur escrow: verifier backend `recordSubmission` (setelah cek `checkCapture`) → funder/verifier `approve` atau `reject` selama review window → setelah window lewat siapa pun bisa `finalize` (kontributor dibayar).
+  - `requiredTier()` ↔ `MissionEscrow.requiredTier` (min Tier 1; Tier 2 bila reward > `tier1MaxReward`).
+  - `MissionStatus` / `SubmissionStatus` / `PersonhoodProvider` ↔ enum Solidity (dicek otomatis oleh `packages/shared/test/contracts-sync.test.ts`).
+- Setelah mengubah contract: `pnpm -F @seenit/contracts export-abi` (menulis `packages/shared/src/abi/*` dan `deployments.ts`, jangan edit manual). CI gagal kalau hasil ekspor tidak di-commit.
+- PersonhoodRegistry: provider menentukan tier (HumanPassport = 1, Self = 2). Satu nullifier terikat permanen ke satu wallet, revoke tidak membebaskannya. Hanya `ATTESTER_ROLE` yang menulis.
+- MissionEscrow, role: `OPERATOR_ROLE` (backend: record, accept, reject), `PAUSER_ROLE`, admin 2-langkah (`AccessControlDefaultAdminRules`).
+- Alur escrow: operator `recordSubmission` (setelah cek `checkCapture`, kontributor wajib `isVerified`) → pendana/operator `acceptSubmission` atau `rejectSubmission` selama review window → setelah window lewat siapa pun bisa `finalize`. Payout = reward − platform fee (bps, di-snapshot per misi, maks 10%). `cancelMission` (pendana, kapan saja) / `refund` (siapa pun, setelah deadline) mengembalikan slot yang tidak terpakai.
+- Pause memblokir create/record/accept/reject. Cancel/refund/finalize tetap jalan supaya dana tidak pernah terkunci.
 - `mediaHash` on-chain = SHA-256 media asli (sebelum blur), lihat `sha256ToBytes32`. `specHash` = hash dari `canonicalJson(missionSpec)`.

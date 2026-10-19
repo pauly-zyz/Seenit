@@ -54,9 +54,9 @@ export type MissionSpec = z.infer<typeof missionSpecSchema>;
 export type MissionSpecInput = z.input<typeof missionSpecSchema>;
 
 /** Mirrors MissionEscrow.MissionStatus. */
-export const MissionStatus = { None: 0, Open: 1, Closed: 2 } as const;
+export const MissionStatus = { None: 0, Open: 1, Cancelled: 2, Refunded: 3 } as const;
 /** Mirrors MissionEscrow.SubmissionStatus. */
-export const SubmissionStatus = { None: 0, Pending: 1, Approved: 2, Rejected: 3 } as const;
+export const SubmissionStatus = { None: 0, Pending: 1, Accepted: 2, Rejected: 3 } as const;
 
 /**
  * Deterministic JSON (sorted keys, no whitespace). Hash this to get the

@@ -7,6 +7,7 @@
     "test": "forge test",
     "lint": "forge fmt --check",
     "coverage": "forge coverage --no-match-coverage '(test|script)/'",
+    "export-abi": "forge build && node scripts/export-abi.mjs",
     "deploy:testnet": "forge script script/Deploy.s.sol --rpc-url robinhood_testnet --broadcast"
   }
 }

@@ -21,6 +21,15 @@ jobs:
       - run: forge fmt --check
       - run: forge build --sizes
       - run: forge test -vvv
+      # Generated ABIs in packages/shared must match the contracts.
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+        working-directory: .
+      - run: pnpm export-abi && git diff --exit-code -- ../shared/src
 
   typescript:
     runs-on: ubuntu-latest

@@ -34,3 +34,36 @@ contract FeeOnTransferERC20 is ERC20 {
         }
     }
 }
+
+/// @dev Token whose `transfer` calls back into a target once armed, like an ERC-777 hook or a
+///      malicious token. Used to prove every token-moving escrow function is reentrancy-safe.
+contract ReentrantERC20 is ERC20 {
+    address public target;
+    bytes public payload;
+    bool public armed;
+
+    constructor() ERC20("Reentrant USD", "rUSD") {}
+
+    function mint(address to, uint256 amount) external {
+        _mint(to, amount);
+    }
+
+    function arm(address target_, bytes calldata payload_) external {
+        target = target_;
+        payload = payload_;
+        armed = true;
+    }
+
+    function transfer(address to, uint256 value) public override returns (bool) {
+        if (armed) {
+            armed = false; // one shot
+            (bool ok, bytes memory ret) = target.call(payload);
+            if (!ok) {
+                assembly {
+                    revert(add(ret, 32), mload(ret))
+                }
+            }
+        }
+        return super.transfer(to, value);
+    }
+}

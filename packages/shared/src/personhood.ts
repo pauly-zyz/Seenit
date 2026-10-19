@@ -8,8 +8,23 @@ export const PersonhoodTier = {
 } as const;
 export type PersonhoodTier = (typeof PersonhoodTier)[keyof typeof PersonhoodTier];
 
+/** Mirrors PersonhoodRegistry.Provider (values are the on-chain enum indexes). */
+export const PersonhoodProvider = {
+  None: 0,
+  HumanPassport: 1,
+  Self: 2,
+} as const;
+export type PersonhoodProvider = (typeof PersonhoodProvider)[keyof typeof PersonhoodProvider];
+
+/** Same as PersonhoodRegistry.tierForProvider: the tier is fixed by the provider. */
+export function tierForProvider(provider: PersonhoodProvider): PersonhoodTier {
+  if (provider === PersonhoodProvider.Self) return PersonhoodTier.Self;
+  if (provider === PersonhoodProvider.HumanPassport) return PersonhoodTier.Passport;
+  return PersonhoodTier.None;
+}
+
 /**
- * Same rule as MissionEscrow.createMission: at least Tier 1, and Tier 2 when
+ * Same rule as MissionEscrow.requiredTier / createMission: at least Tier 1, and Tier 2 when
  * the per-submission reward is above the Tier 1 cap.
  */
 export function requiredTier(

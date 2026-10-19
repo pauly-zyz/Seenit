@@ -80,12 +80,19 @@ The server speaks MCP over stdio. To try it with an MCP client, build it and poi
 
 ```bash
 cd packages/contracts
-forge test                                            # unit + fuzz + invariant
-pnpm coverage
-pnpm deploy:testnet --account <foundry-keystore>      # needs packages/contracts/.env
+forge test                 # unit, fuzz, attack and invariant tests
+pnpm coverage              # coverage for src/ (100%)
+pnpm export-abi            # regenerate ABIs + deployments in packages/shared
 ```
 
-`REWARD_TOKEN_ADDRESS` must be the official stablecoin address for the target network, from the [Robinhood Chain docs](https://docs.robinhood.com/chain/). It is never hardcoded.
+Deploying to Robinhood Chain testnet (chain ID 46630):
+
+1. Fill in `packages/contracts/.env` (token address from the [Robinhood Chain docs](https://docs.robinhood.com/chain/), role addresses, treasury, fee).
+2. Import the deployer key into a Foundry keystore: `cast wallet import seenit-deployer --interactive`, and fund it with testnet ETH.
+3. `pnpm -F @seenit/contracts deploy:testnet --account seenit-deployer`. This writes `deployments/46630.json`. The script refuses other chains unless `ALLOW_ANY_CHAIN=true`.
+4. `pnpm -F @seenit/contracts export-abi` and commit the updated `packages/shared/src/deployments.ts`.
+
+`REWARD_TOKEN_ADDRESS` must be the official stablecoin address for the target network. It is never hardcoded.
 
 ## Secrets
 
