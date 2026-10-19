@@ -53,3 +53,8 @@ Tagline kerja: "Eyes on the ground for AI agents."
 - Alur escrow: operator `recordSubmission` (setelah cek `checkCapture`, kontributor wajib `isVerified`) → pendana/operator `acceptSubmission` atau `rejectSubmission` selama review window → setelah window lewat siapa pun bisa `finalize`. Payout = reward − platform fee (bps, di-snapshot per misi, maks 10%). `cancelMission` (pendana, kapan saja) / `refund` (siapa pun, setelah deadline) mengembalikan slot yang tidak terpakai.
 - Pause memblokir create/record/accept/reject. Cancel/refund/finalize tetap jalan supaya dana tidak pernah terkunci.
 - `mediaHash` on-chain = SHA-256 media asli (sebelum blur), lihat `sha256ToBytes32`. `specHash` = hash dari `canonicalJson(missionSpec)`.
+- Backend (`apps/web/src/server`): route handler tipis di `src/app/api/**/route.ts` memakai `route()` (auth, rate limit, validasi Zod, error JSON, log pino). Logika ada di `server/domain/*`.
+- Layanan eksternal lewat interface di `server/services`: `EscrowGateway` (viem), `MediaStorage` (R2), `now()`. Test memakai `server/testing/harness.ts` (PGlite + fake), jangan memanggil jaringan sungguhan.
+- Status DB disinkronkan dari event chain lewat `server/domain/sync.ts` (dipakai API dan indexer, idempoten via `chain_events`). Jangan menulis status on-chain ke DB di tempat lain.
+- Media asli (`submissions.media_key`) tidak pernah dikirim ke pendana; hasil hanya memakai `blurred_media_key`.
+- Setelah mengubah schema: `pnpm db:generate` lalu commit migrasi di `packages/db/drizzle`.

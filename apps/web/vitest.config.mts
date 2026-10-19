@@ -11,5 +11,8 @@ export default defineConfig({
     environment: "jsdom",
     setupFiles: ["./vitest.setup.ts"],
     include: ["src/**/*.test.{ts,tsx}"],
+    // Server suites boot an in-process Postgres (PGlite) per file; give hooks room under load.
+    hookTimeout: 60_000,
+    testTimeout: 30_000,
   },
 });

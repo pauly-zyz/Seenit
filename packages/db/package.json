@@ -13,10 +13,15 @@
     "./schema": {
       "types": "./dist/schema/index.d.ts",
       "default": "./dist/schema/index.js"
+    },
+    "./testing": {
+      "types": "./dist/testing.d.ts",
+      "default": "./dist/testing.js"
     }
   },
   "files": [
-    "dist"
+    "dist",
+    "drizzle"
   ],
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
@@ -28,6 +33,7 @@
     "db:check": "drizzle-kit check"
   },
   "dependencies": {
+    "@electric-sql/pglite": "^0.5.10",
     "drizzle-orm": "^0.45.4",
     "pg": "^8.23.1"
   },

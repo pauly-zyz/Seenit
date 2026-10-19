@@ -76,6 +76,27 @@ The server speaks MCP over stdio. To try it with an MCP client, build it and poi
 }
 ```
 
+### API (apps/web)
+
+| Endpoint                                            | Auth                  | What it does                                                                             |
+| --------------------------------------------------- | --------------------- | ---------------------------------------------------------------------------------------- |
+| `GET /api/auth/nonce`                               | none                  | Nonce for Sign-In with Ethereum                                                          |
+| `POST /api/auth/verify`                             | none                  | Verify the signed SIWE message; returns a session token (also set as an httpOnly cookie) |
+| `POST /api/auth/logout`                             | contributor           | End the session                                                                          |
+| `POST /api/missions`                                | API key               | Create a mission; returns the `approve` + `createMission` transactions to sign           |
+| `POST /api/missions/:id/confirm`                    | API key               | Activate the mission from its mined `createMission` tx                                   |
+| `GET /api/missions/nearby?lat&lng[&radiusKm&limit]` | none                  | Active missions with free slots, closest first                                           |
+| `POST /api/submissions/upload-url`                  | contributor           | Signed R2 upload URL, only inside the mission radius and with enough tier                |
+| `POST /api/submissions`                             | contributor           | Finalize: verify file hash, GPS and time, `recordSubmission` on-chain, queue AI          |
+| `POST /api/submissions/:id/accept`                  | API key               | Accept on-chain (contributor paid minus fee)                                             |
+| `POST /api/submissions/:id/reject`                  | API key               | Reject on-chain within the review window (`reason` ≤ 32 bytes)                           |
+| `GET /api/missions/:id/results`                     | API key               | Accepted answers + short-lived URLs to blurred media + on-chain proof                    |
+| `GET /api/cron/indexer`                             | `Bearer $CRON_SECRET` | Sync MissionEscrow events into the database                                              |
+
+Contributors send `Authorization: Bearer <session token>`; funders and agents send `x-api-key: sk_...`. Errors are always `{ "error": { "code", "message", "details", "requestId" } }`. Every route is rate limited (429 with `Retry-After`) and logs one JSON line per request.
+
+Run the indexer continuously with `pnpm -F @seenit/web indexer`, or call `/api/cron/indexer` every minute from a scheduler.
+
 ### Contracts
 
 ```bash
