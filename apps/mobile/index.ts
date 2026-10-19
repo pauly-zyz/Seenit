@@ -1,8 +1,5 @@
-import { registerRootComponent } from "expo";
+// Polyfills first: WalletConnect / AppKit need crypto.getRandomValues and friends.
+import "react-native-get-random-values";
+import "@walletconnect/react-native-compat";
 
-import App from "./App";
-
-// registerRootComponent calls AppRegistry.registerComponent('main', () => App);
-// It also ensures that whether you load the app in Expo Go or in a native build,
-// the environment is set up appropriately
-registerRootComponent(App);
+import "expo-router/entry";

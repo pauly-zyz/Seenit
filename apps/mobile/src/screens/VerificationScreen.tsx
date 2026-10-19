@@ -33,7 +33,7 @@ const C = {
 type Busy = { provider: ProviderId; phase: "starting" | "waiting" } | null;
 
 export interface VerificationScreenProps {
-  api: SeenitApi;
+  api: Pick<SeenitApi, "getPersonhoodStatus" | "startVerification" | "getSession">;
   /** Opens the provider app (Self). Defaults to Linking.openURL. */
   openUrl?: (url: string) => Promise<unknown>;
   pollIntervalMs?: number;

@@ -63,3 +63,6 @@ Tagline kerja: "Eyes on the ground for AI agents."
 - Self: `@selfxyz/core` (`SelfBackendVerifier`, verifikasi lewat hub Self di Celo) + `@selfxyz/common` (`SelfAppBuilder`, `getUniversalLink`). Disclosure selalu kosong; jangan pernah membaca/menyimpan field paspor dari `discloseOutput` selain `nullifier`.
 - Menambah provider baru (mis. World ID) butuh nilai baru di enum DB `personhood_provider` dan di `PersonhoodRegistry.Provider` (kontrak tidak upgradeable, jadi perlu deploy registry baru).
 - Mobile: test dengan `jest-expo` + `@testing-library/react-native` (`pnpm -F @seenit/mobile test`).
+- Mobile (`apps/mobile`): expo-router (`src/app`), screens in `src/screens` take their dependencies as props so they can be tested without native modules. Native mocks live in `jest.setup.ts`.
+- The capture gate in mobile (`src/lib/capture-gate.ts`) mirrors the server checks (`checkCapture`, `CAPTURE_RULES`). Change both together.
+- Uploads go through `UploadQueue` (`src/lib/upload-queue.ts`): it always requests a fresh upload URL and the server validates the GPS at capture time. `CAPTURE_MAX_AGE_MINUTES` (default 6 hours) sets how long an offline capture stays valid.

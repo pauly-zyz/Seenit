@@ -14,16 +14,39 @@
     "test": "jest"
   },
   "dependencies": {
+    "@react-native-async-storage/async-storage": "2.2.0",
+    "@react-native-community/netinfo": "12.0.1",
+    "@reown/appkit-ethers-react-native": "2.0.6",
+    "@reown/appkit-react-native": "2.0.6",
+    "@seenit/shared": "workspace:*",
+    "@walletconnect/react-native-compat": "^2.26.0",
     "expo": "~58.0.14",
+    "expo-application": "~58.1.2",
+    "expo-camera": "~58.0.10",
+    "expo-constants": "~58.0.12",
+    "expo-device": "~58.0.5",
+    "expo-file-system": "~58.0.9",
+    "expo-linking": "~58.0.13",
+    "expo-location": "~58.0.17",
+    "expo-network": "~58.0.3",
+    "expo-router": "~58.0.23",
+    "expo-secure-store": "~58.0.2",
     "expo-status-bar": "~58.0.3",
     "react": "19.3.0",
-    "react-native": "0.88.0"
+    "react-native": "0.88.0",
+    "react-native-get-random-values": "^1.11.0",
+    "react-native-maps": "1.29.11",
+    "react-native-safe-area-context": "~5.10.1",
+    "react-native-screens": "~4.30.0",
+    "react-native-svg": "15.16.0",
+    "viem": "^2.57.7"
   },
   "devDependencies": {
     "@react-native/jest-preset": "~0.88.0",
     "@seenit/eslint-config": "workspace:*",
     "@testing-library/react-native": "^14.1.0",
     "@types/jest": "^30.0.0",
+    "@types/node": "catalog:",
     "@types/react": "~19.3.0",
     "eslint": "catalog:",
     "jest": "^30.5.2",
@@ -35,6 +58,9 @@
     "preset": "jest-expo",
     "testMatch": [
       "<rootDir>/src/**/*.test.{ts,tsx}"
+    ],
+    "setupFiles": [
+      "<rootDir>/jest.setup.ts"
     ]
   }
 }

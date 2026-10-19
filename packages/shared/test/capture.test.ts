@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  CAPTURE_RULES,
   captureMetadataSchema,
   checkCapture,
   sha256ToBytes32,
@@ -68,8 +69,8 @@ describe("checkCapture", () => {
     ],
     [
       "old capture",
-      { capturedAt: "2026-10-19T09:00:00Z" },
-      { fixAt: "2026-10-19T09:00:00Z" },
+      { capturedAt: "2026-10-19T03:00:00Z" },
+      { fixAt: "2026-10-19T03:00:00Z" },
       "capture_too_old",
     ],
   ])("rejects %s", (_, patch, gps, reason) => {
@@ -113,5 +114,24 @@ describe("sha256ToBytes32", () => {
   });
   it("rejects invalid digests", () => {
     expect(() => sha256ToBytes32("0x" + "b".repeat(64))).toThrow();
+  });
+});
+
+describe("CAPTURE_RULES", () => {
+  it("allows queued uploads up to 6 hours and caps GPS accuracy at 50 m", () => {
+    expect(CAPTURE_RULES).toEqual({ maxGpsAccuracyMeters: 50, maxCaptureAgeMs: 6 * 3600_000 });
+  });
+
+  it("keeps optional device details", () => {
+    const parsed = captureMetadataSchema.parse({
+      missionId: "m",
+      source: "in_app_camera",
+      mediaType: "photo",
+      mediaSha256: "a".repeat(64),
+      capturedAt: "2026-10-19T10:00:00Z",
+      gps: { lat: 0, lng: 0, accuracyMeters: 5, fixAt: "2026-10-19T10:00:00Z" },
+      device: { platform: "ios", appVersion: "1.0.0", model: "iPhone 17", osVersion: "26.1" },
+    });
+    expect(parsed.device).toMatchObject({ model: "iPhone 17", osVersion: "26.1" });
   });
 });

@@ -9,7 +9,7 @@ See [`CLAUDE.md`](./CLAUDE.md) for the product brief and engineering principles.
 | Path                     | What                                                         | Status                                |
 | ------------------------ | ------------------------------------------------------------ | ------------------------------------- |
 | `apps/web`               | Next.js 16 (App Router, TypeScript, Tailwind 4)              | placeholder page                      |
-| `apps/mobile`            | Expo SDK 58 (React Native, TypeScript)                       | placeholder screen                    |
+| `apps/mobile`            | Expo SDK 58 (React Native, TypeScript)                       | contributor app + tests               |
 | `apps/mcp`               | MCP server for AI agents (`@modelcontextprotocol/server` v2) | stdio server, no tools yet            |
 | `packages/contracts`     | Foundry: `MissionEscrow`, `PersonhoodRegistry`               | implemented, 100% test coverage       |
 | `packages/db`            | Drizzle ORM + Postgres (`pg`)                                | client + config, empty schema         |
@@ -23,7 +23,7 @@ Tooling: pnpm workspaces + Turborepo, one TypeScript version via the pnpm catalo
 - Node.js 22+ and pnpm 10 (`corepack enable`)
 - [Foundry](https://book.getfoundry.sh/getting-started/installation) (`forge` on your `PATH`) for `packages/contracts`
 - Docker, for local Postgres
-- For the mobile app: the Expo Go app on a phone, or an Android emulator / iOS simulator
+- For the mobile app: an Android emulator / iOS simulator or a phone with a development build (the app uses native modules that Expo Go does not ship)
 
 ## First-time setup
 
@@ -62,7 +62,25 @@ Run one app only with a filter, e.g. `pnpm dev --filter=@seenit/web` or `pnpm -F
 
 ### Mobile
 
-`pnpm dev` starts Metro. Scan the QR code with Expo Go, or press `a` / `i` in the Metro terminal for an emulator. On a real device, set `EXPO_PUBLIC_API_URL` to your machine's LAN IP instead of `localhost`.
+The contributor app (`apps/mobile`, expo-router, routes in `src/app`):
+
+- **Onboarding**: connect a wallet with WalletConnect (Reown AppKit), then Sign-In with Ethereum against the API.
+- **Verify**: Tier 1 (Human Passport) and Tier 2 (Self) through the backend flow.
+- **Missions**: map + list of nearby missions with distance and reward filters. Missions above your tier show as locked.
+- **Mission detail**: instructions, reward, radius on a map, deadline, and an example of the JSON answer.
+- **Camera**: in-app only (no gallery picker). GPS (high accuracy), time and device info are taken at the shutter, and the record button stays disabled outside the radius, with a poor fix, or with a mocked location. The file's SHA-256 is computed on the device.
+- **Uploads**: a persistent queue with progress, automatic retry with backoff, and pause while offline.
+- **Earnings**: balance, submission status, and Robinhood Chain explorer links.
+
+Setup:
+
+1. `cp apps/mobile/.env.example apps/mobile/.env`, then set `EXPO_PUBLIC_REOWN_PROJECT_ID` (from https://dashboard.reown.com) and the Google Maps keys for Android.
+2. On a real device, set `EXPO_PUBLIC_API_URL` to your machine's LAN IP instead of `localhost`, and set `SIWE_DOMAIN` in `apps/web/.env` to the same host.
+3. Build a development client once with `npx expo run:android` / `npx expo run:ios` (or EAS), then `pnpm -F @seenit/mobile dev`. Expo Go is not enough because of the camera, maps and WalletConnect native modules.
+
+Tests: `pnpm -F @seenit/mobile test` (jest-expo + React Native Testing Library; native modules are mocked in `jest.setup.ts`).
+
+Licence note: `@reown/appkit-react-native` is under the Reown AppKit Community License, which limits commercial use above certain thresholds. Review it before a commercial launch.
 
 ### MCP server
 

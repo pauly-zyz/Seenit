@@ -12,6 +12,7 @@ import {
   type users,
 } from "@seenit/db";
 import {
+  CAPTURE_RULES,
   checkCapture,
   haversineMeters,
   sha256ToBytes32,
@@ -32,7 +33,7 @@ type User = InferSelectModel<typeof users>;
 type SubmissionRow = InferSelectModel<typeof submissions>;
 
 export const UPLOAD_URL_TTL_SECONDS = 10 * 60;
-export const MAX_GPS_ACCURACY_METERS = 50;
+export const MAX_GPS_ACCURACY_METERS = CAPTURE_RULES.maxGpsAccuracyMeters;
 export const MAX_BYTES = { photo: 25 * 1024 * 1024, video: 300 * 1024 * 1024 } as const;
 export const CONTENT_TYPES = {
   photo: ["image/jpeg", "image/heic", "image/png"],
@@ -74,7 +75,8 @@ export interface UploadUrlInput {
   mediaType: "photo" | "video";
   contentType: string;
   contentLength: number;
-  gps: { lat: number; lng: number; accuracyMeters: number };
+  /** Location at the shutter (the app may request the URL later, from its upload queue). */
+  gps: { lat: number; lng: number; accuracyMeters: number; isMocked?: boolean };
 }
 
 /**
@@ -99,6 +101,11 @@ export async function issueUploadUrl(s: Services, user: User, input: UploadUrlIn
     throw new AppError("forbidden", `This mission needs personhood tier ${mission.minTier}`, {
       requiredTier: mission.minTier,
       yourTier: tier,
+    });
+  }
+  if (input.gps.isMocked) {
+    throw new AppError("forbidden", "Your location looks simulated. Turn off mock location apps.", {
+      reason: "gps_mocked",
     });
   }
   if (input.gps.accuracyMeters > MAX_GPS_ACCURACY_METERS) {
@@ -223,7 +230,11 @@ export async function finalizeSubmission(
       maxVideoSeconds: mission.maxVideoSeconds ?? undefined,
     },
     input.capture,
-    { now, maxGpsAccuracyMeters: MAX_GPS_ACCURACY_METERS },
+    {
+      now,
+      maxGpsAccuracyMeters: MAX_GPS_ACCURACY_METERS,
+      maxCaptureAgeMs: s.config.captureMaxAgeMs,
+    },
   );
   reasons.push(...check.reasons);
 

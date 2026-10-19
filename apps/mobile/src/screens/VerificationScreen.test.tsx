@@ -1,13 +1,9 @@
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react-native";
 
-import {
-  ApiError,
-  type PersonhoodStatus,
-  type SeenitApi,
-  type SessionInfo,
-  type StartResponse,
-} from "../lib/api";
-import { VerificationScreen } from "./VerificationScreen";
+import { ApiError, type PersonhoodStatus, type SessionInfo, type StartResponse } from "../lib/api";
+import { VerificationScreen, type VerificationScreenProps } from "./VerificationScreen";
+
+type VerificationApi = VerificationScreenProps["api"];
 
 function statusFor(tier: number, missions = { t1: 4, t2: 6 }): PersonhoodStatus {
   return {
@@ -61,7 +57,7 @@ function fakeApi(opts: {
 }) {
   let i = 0;
   let s = 0;
-  const api: SeenitApi & { started: string[] } = {
+  const api: VerificationApi & { started: string[] } = {
     started: [],
     getPersonhoodStatus: jest.fn(
       async () => opts.statuses[Math.min(i++, opts.statuses.length - 1)]!,
@@ -172,7 +168,7 @@ describe("VerificationScreen", () => {
 
   it("shows a retry when the status can't load", async () => {
     let fail = true;
-    const api: SeenitApi = {
+    const api: VerificationApi = {
       getPersonhoodStatus: jest.fn(async () => {
         if (fail)
           throw new ApiError(0, "network_error", "Can't reach Seenit. Check your connection.");

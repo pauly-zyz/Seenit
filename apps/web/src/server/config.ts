@@ -27,6 +27,13 @@ const schema = z.object({
   /** Shared secret for /api/cron/* (sent as Bearer token). */
   CRON_SECRET: z.string().min(32),
 
+  /** How old a capture may be when it is finalized (offline upload queue). */
+  CAPTURE_MAX_AGE_MINUTES: z.coerce
+    .number()
+    .int()
+    .min(5)
+    .max(24 * 60)
+    .default(360),
   REWARD_TOKEN_SYMBOL: z.string().default("USDG"),
   REWARD_TOKEN_DECIMALS: z.coerce.number().int().min(0).max(18).default(6),
 
@@ -64,6 +71,7 @@ export type AppConfig = {
   cronSecret: string;
   tokenSymbol: string;
   tokenDecimals: number;
+  captureMaxAgeMs: number;
 };
 
 export type ServerEnv = z.infer<typeof schema>;
@@ -91,5 +99,6 @@ export function toAppConfig(env: ServerEnv): AppConfig {
     cronSecret: env.CRON_SECRET,
     tokenSymbol: env.REWARD_TOKEN_SYMBOL,
     tokenDecimals: env.REWARD_TOKEN_DECIMALS,
+    captureMaxAgeMs: env.CAPTURE_MAX_AGE_MINUTES * 60_000,
   };
 }

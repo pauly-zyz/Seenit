@@ -40,6 +40,7 @@ export const testConfig: AppConfig = {
   cronSecret: "test-cron-secret-that-is-long-enough-123",
   tokenSymbol: "USDG",
   tokenDecimals: 6,
+  captureMaxAgeMs: 6 * 3600_000,
 };
 
 export const SELF_TEST_CONFIG = {

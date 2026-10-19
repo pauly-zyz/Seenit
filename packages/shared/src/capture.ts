@@ -30,8 +30,18 @@ export const captureMetadataSchema = z.object({
   device: z.object({
     platform: z.enum(["ios", "android"]),
     appVersion: z.string().min(1),
+    model: z.string().max(100).optional(),
+    osVersion: z.string().max(50).optional(),
   }),
 });
+
+/** Capture rules shared by the app (to gate the record button) and the API (to verify). */
+export const CAPTURE_RULES = {
+  /** Max GPS accuracy radius at the shutter. */
+  maxGpsAccuracyMeters: 50,
+  /** Default max time between capture and server check (lets the app queue on bad signal). */
+  maxCaptureAgeMs: 6 * 60 * 60_000,
+} as const;
 export type CaptureMetadata = z.infer<typeof captureMetadataSchema>;
 
 export interface CaptureCheckOptions {
@@ -39,7 +49,7 @@ export interface CaptureCheckOptions {
   now: Date;
   /** Max GPS accuracy radius allowed. Default 50 m. */
   maxGpsAccuracyMeters?: number;
-  /** Max time between capture and upload. Default 15 min. */
+  /** Max time between capture and the server check. Default 6 h (offline queue). */
   maxCaptureAgeMs?: number;
   /** Max gap between GPS fix and shutter. Default 2 min. */
   maxFixSkewMs?: number;
@@ -77,8 +87,8 @@ export function checkCapture(
   capture: CaptureMetadata,
   opts: CaptureCheckOptions,
 ): CaptureCheckResult {
-  const maxAccuracy = opts.maxGpsAccuracyMeters ?? 50;
-  const maxAge = opts.maxCaptureAgeMs ?? 15 * 60_000;
+  const maxAccuracy = opts.maxGpsAccuracyMeters ?? CAPTURE_RULES.maxGpsAccuracyMeters;
+  const maxAge = opts.maxCaptureAgeMs ?? CAPTURE_RULES.maxCaptureAgeMs;
   const maxFixSkew = opts.maxFixSkewMs ?? 2 * 60_000;
   const maxClockSkew = opts.maxClockSkewMs ?? 2 * 60_000;
 

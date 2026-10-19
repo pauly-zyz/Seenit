@@ -300,11 +300,11 @@ describe("POST /api/submissions (finalize)", () => {
     const submissionId = await upload(mission.id, contributor.token);
     const bad = capture(
       mission.id,
-      { capturedAt: new Date(h.now.getTime() - 2 * 3600_000).toISOString() },
+      { capturedAt: new Date(h.now.getTime() - 7 * 3600_000).toISOString() },
       {
         lat: SPOT.lat + 0.01,
         isMocked: true,
-        fixAt: new Date(h.now.getTime() - 2 * 3600_000).toISOString(),
+        fixAt: new Date(h.now.getTime() - 7 * 3600_000).toISOString(),
       },
     );
     const res = await call(finalize, {
