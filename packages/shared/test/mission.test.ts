@@ -24,9 +24,9 @@ describe("missionSpecSchema", () => {
     const res = missionSpecSchema.safeParse({ ...valid, mediaType: "video" });
     expect(res.success).toBe(false);
     expect(res.error?.issues[0]?.path).toEqual(["maxVideoSeconds"]);
-    expect(missionSpecSchema.safeParse({ ...valid, mediaType: "video", maxVideoSeconds: 30 }).success).toBe(
-      true,
-    );
+    expect(
+      missionSpecSchema.safeParse({ ...valid, mediaType: "video", maxVideoSeconds: 30 }).success,
+    ).toBe(true);
   });
 
   it.each([

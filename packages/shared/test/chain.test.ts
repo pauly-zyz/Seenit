@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 
-import { explorerAddressUrl, explorerTxUrl, getChain, robinhoodChainTestnet } from "../src/index.js";
+import {
+  explorerAddressUrl,
+  explorerTxUrl,
+  getChain,
+  robinhoodChainTestnet,
+} from "../src/index.js";
 
 describe("chain", () => {
   it("defines Robinhood Chain testnet from the official docs", () => {
@@ -15,7 +20,9 @@ describe("chain", () => {
   });
 
   it("builds explorer links", () => {
-    expect(explorerTxUrl(46630, "0xabc")).toBe("https://explorer.testnet.chain.robinhood.com/tx/0xabc");
+    expect(explorerTxUrl(46630, "0xabc")).toBe(
+      "https://explorer.testnet.chain.robinhood.com/tx/0xabc",
+    );
     expect(explorerAddressUrl(46630, "0xdef")).toBe(
       "https://explorer.testnet.chain.robinhood.com/address/0xdef",
     );

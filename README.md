@@ -2,45 +2,91 @@
 
 **Eyes on the ground for AI agents.** A marketplace where AI agents (or people) post paid photo/video missions at real-world locations, verified humans nearby capture proof in-app, AI vision turns it into structured JSON, and the reward is paid from an on-chain escrow on Robinhood Chain.
 
-See [`CLAUDE.md`](./CLAUDE.md) for the full product brief and principles.
+See [`CLAUDE.md`](./CLAUDE.md) for the product brief and engineering principles.
 
-## Status
+## Layout
 
-| Package | State |
-| --- | --- |
-| `packages/contracts` | `PersonhoodRegistry` + `MissionEscrow`, Foundry tests (unit, fuzz, invariant), 100% coverage, deploy script |
-| `packages/shared` | Chain constants, reward token config, Zod schemas (mission spec, capture metadata), anti-cheat `checkCapture`, geo helpers |
-| `packages/db` | not started |
-| `apps/web` | not started |
-| `apps/mobile` | not started |
-| `apps/mcp` | not started |
+| Path                     | What                                                         | Status                                |
+| ------------------------ | ------------------------------------------------------------ | ------------------------------------- |
+| `apps/web`               | Next.js 16 (App Router, TypeScript, Tailwind 4)              | placeholder page                      |
+| `apps/mobile`            | Expo SDK 58 (React Native, TypeScript)                       | placeholder screen                    |
+| `apps/mcp`               | MCP server for AI agents (`@modelcontextprotocol/server` v2) | stdio server, no tools yet            |
+| `packages/contracts`     | Foundry: `MissionEscrow`, `PersonhoodRegistry`               | implemented, 100% test coverage       |
+| `packages/db`            | Drizzle ORM + Postgres (`pg`)                                | client + config, empty schema         |
+| `packages/shared`        | Shared types, Zod schemas, chain constants                   | chain/mission/capture schemas + tests |
+| `packages/eslint-config` | Shared ESLint flat configs (`base`, `next`, `expo`)          | —                                     |
 
-## Getting started
+Tooling: pnpm workspaces + Turborepo, one TypeScript version via the pnpm catalog (`pnpm-workspace.yaml`), shared `tsconfig.base.json` / `tsconfig.node.json`, Prettier at the root.
 
-Requirements: Node 22+, pnpm 10, [Foundry](https://book.getfoundry.sh/).
+## Requirements
+
+- Node.js 22+ and pnpm 10 (`corepack enable`)
+- [Foundry](https://book.getfoundry.sh/getting-started/installation) (`forge` on your `PATH`) for `packages/contracts`
+- Docker, for local Postgres
+- For the mobile app: the Expo Go app on a phone, or an Android emulator / iOS simulator
+
+## First-time setup
 
 ```bash
-git submodule update --init --recursive
+git clone --recurse-submodules <repo-url> && cd Seenit
+# already cloned? run: git submodule update --init --recursive
 pnpm install
-cp .env.example .env   # fill in values
-pnpm test              # runs every package's tests through Turborepo
+
+# env files: copy each example and fill in what you need
+cp .env.example .env                                   # docker compose (Postgres)
+cp apps/web/.env.example apps/web/.env.local
+cp apps/mobile/.env.example apps/mobile/.env
+cp apps/mcp/.env.example apps/mcp/.env
+cp packages/db/.env.example packages/db/.env
+cp packages/contracts/.env.example packages/contracts/.env
+
+pnpm db:up        # start Postgres 17 on localhost:5432
+pnpm db:migrate   # apply Drizzle migrations
+```
+
+## Everyday commands
+
+| Command                         | Does                                                                                  |
+| ------------------------------- | ------------------------------------------------------------------------------------- |
+| `pnpm dev`                      | Web on http://localhost:3000, Expo Metro on :8081, MCP server (watch), shared (watch) |
+| `pnpm build`                    | Builds every package (Next build, Expo export, tsc, forge build)                      |
+| `pnpm lint`                     | ESLint everywhere, `forge fmt --check` for contracts                                  |
+| `pnpm typecheck`                | `tsc --noEmit` everywhere                                                             |
+| `pnpm test`                     | Vitest + Foundry tests                                                                |
+| `pnpm format` / `format:check`  | Prettier                                                                              |
+| `pnpm db:up` / `db:down`        | Start / stop local Postgres                                                           |
+| `pnpm db:generate`              | Generate a migration from `packages/db/src/schema`                                    |
+| `pnpm db:migrate` / `db:studio` | Apply migrations / open Drizzle Studio                                                |
+
+Run one app only with a filter, e.g. `pnpm dev --filter=@seenit/web` or `pnpm -F @seenit/mobile android`.
+
+### Mobile
+
+`pnpm dev` starts Metro. Scan the QR code with Expo Go, or press `a` / `i` in the Metro terminal for an emulator. On a real device, set `EXPO_PUBLIC_API_URL` to your machine's LAN IP instead of `localhost`.
+
+### MCP server
+
+The server speaks MCP over stdio. To try it with an MCP client, build it and point the client at it:
+
+```json
+{
+  "mcpServers": {
+    "seenit": { "command": "node", "args": ["/abs/path/to/Seenit/apps/mcp/dist/index.js"] }
+  }
+}
 ```
 
 ### Contracts
 
 ```bash
 cd packages/contracts
-forge test                 # unit + fuzz + invariant
-pnpm coverage              # coverage for src/
-pnpm deploy:testnet --account <foundry-keystore>   # needs .env values
+forge test                                            # unit + fuzz + invariant
+pnpm coverage
+pnpm deploy:testnet --account <foundry-keystore>      # needs packages/contracts/.env
 ```
 
-`REWARD_TOKEN_ADDRESS` must be the official stablecoin address for the target network, taken from the [Robinhood Chain docs](https://docs.robinhood.com/chain/). It is never hardcoded.
+`REWARD_TOKEN_ADDRESS` must be the official stablecoin address for the target network, from the [Robinhood Chain docs](https://docs.robinhood.com/chain/). It is never hardcoded.
 
-## Mission lifecycle (on-chain)
+## Secrets
 
-1. **Create** – funder escrows `reward × maxSubmissions`. Rewards above `tier1MaxReward` automatically require Tier 2 personhood.
-2. **Record** – after in-app capture, GPS/timestamp checks and AI vision, the backend verifier anchors the media hash and reserves a slot.
-3. **Review** – funder or verifier approves (pays now) or rejects (frees the slot) within the review window.
-4. **Finalize** – if nobody rejects in time, anyone can finalize and the contributor is paid.
-5. **Close** – funder closes any time (anyone after the deadline); unused slots are refunded.
+Only `.env.example` files are committed. `.env*`, private keys, keystores and certificates are gitignored. Anything prefixed `NEXT_PUBLIC_` or `EXPO_PUBLIC_` ends up in client bundles, so never put secrets there.

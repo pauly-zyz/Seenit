@@ -79,11 +79,7 @@ describe("checkCapture", () => {
   });
 
   it("rejects captures after the mission deadline", () => {
-    const r = checkCapture(
-      { ...mission, deadline: "2026-10-19T09:00:00Z" },
-      capture(),
-      { now },
-    );
+    const r = checkCapture({ ...mission, deadline: "2026-10-19T09:00:00Z" }, capture(), { now });
     expect(r.reasons).toEqual(["after_deadline"]);
   });
 
@@ -93,15 +89,20 @@ describe("checkCapture", () => {
       "video_duration_missing",
     ]);
     expect(
-      checkCapture(videoMission, capture({ mediaType: "video", videoDurationSeconds: 31 }), { now }).reasons,
+      checkCapture(videoMission, capture({ mediaType: "video", videoDurationSeconds: 31 }), { now })
+        .reasons,
     ).toEqual(["video_too_long"]);
     expect(
-      checkCapture(videoMission, capture({ mediaType: "video", videoDurationSeconds: 30 }), { now }).ok,
+      checkCapture(videoMission, capture({ mediaType: "video", videoDurationSeconds: 30 }), { now })
+        .ok,
     ).toBe(true);
   });
 
   it("respects custom thresholds", () => {
-    const r = checkCapture(mission, capture({}, { accuracyMeters: 40 }), { now, maxGpsAccuracyMeters: 20 });
+    const r = checkCapture(mission, capture({}, { accuracyMeters: 40 }), {
+      now,
+      maxGpsAccuracyMeters: 20,
+    });
     expect(r.reasons).toEqual(["gps_inaccurate"]);
   });
 });

@@ -16,9 +16,7 @@ export const rewardTokenConfigSchema = z.object({
 });
 export type RewardTokenConfig = z.infer<typeof rewardTokenConfigSchema>;
 
-export function loadRewardTokenConfig(
-  env: Record<string, string | undefined>,
-): RewardTokenConfig {
+export function loadRewardTokenConfig(env: Record<string, string | undefined>): RewardTokenConfig {
   return rewardTokenConfigSchema.parse({
     address: env.REWARD_TOKEN_ADDRESS,
     symbol: env.REWARD_TOKEN_SYMBOL,

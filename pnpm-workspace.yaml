@@ -2,5 +2,19 @@ packages:
   - "apps/*"
   - "packages/*"
 
+# One version of shared tooling across the workspace.
+# TypeScript is pinned to the 6.0 line because Expo SDK 58 requires it.
+catalog:
+  typescript: ~6.0.3
+  "@types/node": ^22.19.0
+  eslint: ^9.39.1
+  zod: ^4.1.12
+  vitest: ^3.2.4
+  tsx: ^4.23.15
+
 onlyBuiltDependencies:
   - esbuild
+
+ignoredBuiltDependencies:
+  - sharp
+  - unrs-resolver

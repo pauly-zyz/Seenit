@@ -1,0 +1,27 @@
+{
+  "name": "@seenit/mobile",
+  "version": "0.0.0",
+  "private": true,
+  "main": "index.ts",
+  "scripts": {
+    "dev": "expo start",
+    "start": "expo start",
+    "android": "expo start --android",
+    "ios": "expo start --ios",
+    "build": "expo export --platform android --platform ios --output-dir dist",
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "expo": "~58.0.14",
+    "expo-status-bar": "~58.0.3",
+    "react": "19.3.0",
+    "react-native": "0.88.0"
+  },
+  "devDependencies": {
+    "@seenit/eslint-config": "workspace:*",
+    "@types/react": "~19.3.0",
+    "eslint": "catalog:",
+    "typescript": "catalog:"
+  }
+}

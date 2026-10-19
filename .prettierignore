@@ -1,0 +1,14 @@
+pnpm-lock.yaml
+**/node_modules
+**/dist
+**/.next
+**/.expo
+**/.turbo
+**/out
+**/coverage
+packages/contracts/lib
+packages/contracts/cache
+packages/contracts/broadcast
+packages/db/drizzle
+apps/web/next-env.d.ts
+**/AGENTS.md

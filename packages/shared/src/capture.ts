@@ -70,7 +70,10 @@ export interface CaptureCheckResult {
  * deterministic so it can be unit-tested and reused by the API and workers.
  */
 export function checkCapture(
-  mission: Pick<MissionSpec, "mediaType" | "location" | "radiusMeters" | "deadline" | "maxVideoSeconds">,
+  mission: Pick<
+    MissionSpec,
+    "mediaType" | "location" | "radiusMeters" | "deadline" | "maxVideoSeconds"
+  >,
   capture: CaptureMetadata,
   opts: CaptureCheckOptions,
 ): CaptureCheckResult {

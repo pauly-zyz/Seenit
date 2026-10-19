@@ -1,18 +1,47 @@
+# dependencies
 node_modules/
+
+# build output
 dist/
-.turbo/
 .next/
 out/
+build/
+.expo/
+web-build/
+.turbo/
 coverage/
-*.log
-.DS_Store
-
-# env / secrets
-.env
-.env.*
-!.env.example
+*.tsbuildinfo
 
 # foundry
 packages/contracts/out/
 packages/contracts/cache/
-packages/contracts/broadcast/*/31337/
+packages/contracts/broadcast/
+
+# env files: commit only .env.example
+.env
+.env.*
+!.env.example
+
+# keys, certificates, keystores, credentials
+*.pem
+*.key
+*.p8
+*.p12
+*.pfx
+*.jks
+*.keystore
+*.mobileprovision
+id_rsa*
+id_ed25519*
+keystore/
+secrets/
+*.secret
+credentials.json
+service-account*.json
+google-services.json
+GoogleService-Info.plist
+
+# logs / OS
+*.log
+.DS_Store
+.vercel

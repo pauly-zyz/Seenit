@@ -7,13 +7,23 @@
     "node": ">=22"
   },
   "scripts": {
+    "dev": "turbo run dev",
     "build": "turbo run build",
-    "test": "turbo run test",
+    "lint": "turbo run lint",
     "typecheck": "turbo run typecheck",
-    "lint": "turbo run lint"
+    "test": "turbo run test",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "db:up": "docker compose up -d postgres",
+    "db:down": "docker compose down",
+    "db:generate": "pnpm -F @seenit/db db:generate",
+    "db:migrate": "pnpm -F @seenit/db db:migrate",
+    "db:studio": "pnpm -F @seenit/db db:studio"
   },
   "devDependencies": {
+    "prettier": "^3.9.10",
+    "prettier-plugin-tailwindcss": "^0.8.1",
     "turbo": "^2.11.9",
-    "typescript": "^5.9.3"
+    "typescript": "catalog:"
   }
 }
