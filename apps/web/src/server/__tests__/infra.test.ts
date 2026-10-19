@@ -38,8 +38,8 @@ describe("rate limiting", () => {
 
 describe("job queue", () => {
   it("claims each job once, in order, and respects run_after", async () => {
-    const a = await enqueueJob(h.db, "t", { n: 1 });
-    await enqueueJob(h.db, "other", { n: 2 });
+    const a = await enqueueJob(h.db, "t", { n: 1 }, h.now);
+    await enqueueJob(h.db, "other", { n: 2 }, h.now);
     const first = await claimJob(h.db, "t", h.now);
     expect(first!.id).toBe(a.id);
     expect(first!.status).toBe("running");
@@ -50,7 +50,7 @@ describe("job queue", () => {
   });
 
   it("retries with backoff then fails permanently", async () => {
-    const j = await enqueueJob(h.db, "t", {});
+    const j = await enqueueJob(h.db, "t", {}, h.now);
     for (let attempt = 1; attempt <= 3; attempt++) {
       const claimed = await claimJob(
         h.db,
@@ -65,7 +65,7 @@ describe("job queue", () => {
   });
 
   it("does not hand out a retried job before its backoff", async () => {
-    const j = await enqueueJob(h.db, "t", {});
+    const j = await enqueueJob(h.db, "t", {}, h.now);
     await claimJob(h.db, "t", h.now);
     await failJob(h.db, j.id, "boom", h.now);
     expect(await claimJob(h.db, "t", h.now)).toBeNull();

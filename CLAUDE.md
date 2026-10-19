@@ -58,3 +58,8 @@ Tagline kerja: "Eyes on the ground for AI agents."
 - Status DB disinkronkan dari event chain lewat `server/domain/sync.ts` (dipakai API dan indexer, idempoten via `chain_events`). Jangan menulis status on-chain ke DB di tempat lain.
 - Media asli (`submissions.media_key`) tidak pernah dikirim ke pendana; hasil hanya memakai `blurred_media_key`.
 - Setelah mengubah schema: `pnpm db:generate` lalu commit migrasi di `packages/db/drizzle`.
+- Proof of personhood (`server/personhood/*`, `server/domain/personhood.ts`): setiap provider adalah adapter `PersonhoodProvider` (`instant` seperti Human Passport, atau `redirect` + callback seperti Self). Alur bersama `recordVerification`: cek wallet, tolak nullifier milik akun lain, simpan hanya `keccak256("seenit:<provider>:<nullifier>")`, lalu `PersonhoodRegistry.attest`. Tier dihitung hanya dari atestasi yang sudah on-chain (`tx_hash` terisi).
+- Human Passport: `GET {HUMAN_PASSPORT_API_URL}/v2/stamps/{scorer_id}/score/{address}` dengan header `X-API-Key`. Tidak ada nullifier; anti-Sybil berasal dari dedup stamp Passport, jadi nullifier = scorer + wallet.
+- Self: `@selfxyz/core` (`SelfBackendVerifier`, verifikasi lewat hub Self di Celo) + `@selfxyz/common` (`SelfAppBuilder`, `getUniversalLink`). Disclosure selalu kosong; jangan pernah membaca/menyimpan field paspor dari `discloseOutput` selain `nullifier`.
+- Menambah provider baru (mis. World ID) butuh nilai baru di enum DB `personhood_provider` dan di `PersonhoodRegistry.Provider` (kontrak tidak upgradeable, jadi perlu deploy registry baru).
+- Mobile: test dengan `jest-expo` + `@testing-library/react-native` (`pnpm -F @seenit/mobile test`).

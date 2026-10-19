@@ -95,6 +95,8 @@ The server speaks MCP over stdio. To try it with an MCP client, build it and poi
 
 Contributors send `Authorization: Bearer <session token>`; funders and agents send `x-api-key: sk_...`. Errors are always `{ "error": { "code", "message", "details", "requestId" } }`. Every route is rate limited (429 with `Retry-After`) and logs one JSON line per request.
 
+Proof of personhood: a verified identity is reduced to a provider-scoped nullifier, hashed (keccak256) and written to `PersonhoodRegistry` with the attester key. Only the hash and a non-personal summary (e.g. the Passport score) are stored; passport data is never requested from Self. A nullifier already linked to another wallet is rejected. Providers are adapters (`apps/web/src/server/personhood`), so adding one (e.g. World ID) does not touch routes or storage.
+
 Run the indexer continuously with `pnpm -F @seenit/web indexer`, or call `/api/cron/indexer` every minute from a scheduler.
 
 ### Contracts

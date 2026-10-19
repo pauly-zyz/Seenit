@@ -8,6 +8,8 @@ import {
   type EscrowGateway,
   type MissionCreatedEvent,
 } from "../chain/types";
+import type { RegistryGateway } from "../chain/registry-gateway";
+import type { SelfProofVerifier } from "../personhood/self";
 import type { MediaStorage } from "../storage/types";
 
 /** In-memory MissionEscrow stand-in. Records calls; tests can queue failures. */
@@ -141,6 +143,109 @@ export class FakeStorage implements MediaStorage {
       sha256: createHash("sha256").update(obj.bytes).digest("hex"),
       size: obj.bytes.length,
       contentType: obj.contentType,
+    };
+  }
+}
+
+/** In-memory PersonhoodRegistry: enforces one nullifier per wallet like the contract. */
+export class FakeRegistryGateway implements RegistryGateway {
+  attests: { wallet: Address; provider: number; nullifierHash: Hex; expiresAt: bigint }[] = [];
+  private owners = new Map<Hex, string>();
+  private failure: Error | null = null;
+  private counter = 0;
+
+  reset() {
+    this.attests = [];
+    this.owners.clear();
+    this.failure = null;
+  }
+
+  failNext(errorName?: string) {
+    this.failure = new ChainRevertError("attest reverted", errorName);
+  }
+
+  async attest(wallet: Address, provider: number, nullifierHash: Hex, expiresAt: bigint) {
+    if (this.failure) {
+      const f = this.failure;
+      this.failure = null;
+      throw f;
+    }
+    const owner = this.owners.get(nullifierHash);
+    if (owner && owner !== wallet.toLowerCase()) {
+      throw new ChainRevertError("attest reverted", "NullifierBoundToOtherWallet");
+    }
+    this.owners.set(nullifierHash, wallet.toLowerCase());
+    this.attests.push({ wallet, provider, nullifierHash, expiresAt });
+    return { txHash: `0x${(++this.counter).toString(16).padStart(64, "f")}` as Hex };
+  }
+}
+
+/** Scripted Human Passport API (stands in for fetch). */
+export class FakePassportApi {
+  calls: { url: string; headers: Record<string, string> }[] = [];
+  next: { status: number; body: unknown } | "network_error" = { status: 200, body: {} };
+
+  reset() {
+    this.calls = [];
+    this.next = { status: 200, body: {} };
+  }
+
+  /** Respond with a v2 score for whatever address is asked. */
+  score(score: string | null, extra: Record<string, unknown> = {}) {
+    this.next = {
+      status: 200,
+      body: {
+        score,
+        passing_score: Number(score) >= 20,
+        threshold: "20.00000",
+        last_score_timestamp: "2026-10-19T09:00:00Z",
+        expiration_timestamp: "2027-01-17T09:00:00Z",
+        error: null,
+        stamps: { Google: { score: "1.00000", dedup: false, expiration_date: null } },
+        ...extra,
+      },
+    };
+  }
+
+  fetch: typeof fetch = async (input, init) => {
+    const url = String(input);
+    this.calls.push({ url, headers: Object.fromEntries(new Headers(init?.headers).entries()) });
+    if (this.next === "network_error") throw new TypeError("fetch failed");
+    const address = url.split("/").at(-1);
+    const body =
+      this.next.body && typeof this.next.body === "object" && !("address" in this.next.body)
+        ? { address, ...this.next.body }
+        : this.next.body;
+    return new Response(JSON.stringify(body), { status: this.next.status });
+  };
+}
+
+/** Scripted SelfBackendVerifier. */
+export class FakeSelfVerifier implements SelfProofVerifier {
+  calls: unknown[][] = [];
+  next: { valid: boolean; nullifier: string; userIdentifier: string } | Error = {
+    valid: true,
+    nullifier: "1234567890",
+    userIdentifier: "0x0",
+  };
+
+  reset() {
+    this.calls = [];
+  }
+
+  async verify(...args: Parameters<SelfProofVerifier["verify"]>) {
+    this.calls.push(args);
+    if (this.next instanceof Error) throw this.next;
+    return {
+      attestationId: 1,
+      isValidDetails: { isValid: this.next.valid },
+      // Real results also carry passport fields; we must never read or store them.
+      discloseOutput: {
+        nullifier: this.next.nullifier,
+        name: "SHOULD NOT LEAK",
+        idNumber: "X1234567",
+      },
+      userData: { userIdentifier: this.next.userIdentifier },
     };
   }
 }

@@ -19,7 +19,7 @@ export async function createTestDb(): Promise<{ db: Database; close: () => Promi
 export async function resetTestDb(db: Database): Promise<void> {
   await db.execute(
     sql`truncate table payouts, submissions, missions, api_keys, funders, sessions,
-      auth_nonces, personhood_attestations, users, jobs, rate_limits, indexer_state, chain_events
+      auth_nonces, verification_sessions, personhood_attestations, users, jobs, rate_limits, indexer_state, chain_events
       restart identity cascade`,
   );
 }

@@ -1,6 +1,12 @@
 import { pgEnum } from "drizzle-orm/pg-core";
 
 export const personhoodProvider = pgEnum("personhood_provider", ["human_passport", "self"]);
+export const verificationSessionStatus = pgEnum("verification_session_status", [
+  "pending",
+  "verified",
+  "failed",
+  "expired",
+]);
 export const mediaType = pgEnum("media_type", ["photo", "video"]);
 
 /**

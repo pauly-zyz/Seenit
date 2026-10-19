@@ -19,6 +19,7 @@ export {
   gt,
   gte,
   inArray,
+  isNotNull,
   isNull,
   lt,
   lte,

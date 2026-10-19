@@ -3,10 +3,8 @@ import {
   eq,
   gt,
   inArray,
-  isNull,
   missions,
   or,
-  personhoodAttestations,
   sql,
   submissions,
   type Database,
@@ -27,6 +25,7 @@ import { enqueueJob, JOB_AI_PROCESS } from "../jobs";
 import type { Logger } from "../logger";
 import type { Services } from "../services";
 import { getFunderMission, type MissionRow, SLOT_HOLDING } from "./missions";
+import { effectiveTier } from "./personhood";
 import { applySubmissionAccepted, applySubmissionRejected } from "./sync";
 
 type User = InferSelectModel<typeof users>;
@@ -39,21 +38,6 @@ export const CONTENT_TYPES = {
   photo: ["image/jpeg", "image/heic", "image/png"],
   video: ["video/mp4", "video/quicktime"],
 } as const;
-
-/** Highest valid personhood tier from the attestation records (expiry and revocation aware). */
-export async function effectiveTier(db: Database, userId: string, now: Date): Promise<number> {
-  const [row] = await db
-    .select({ tier: sql<number | null>`max(${personhoodAttestations.tier})` })
-    .from(personhoodAttestations)
-    .where(
-      and(
-        eq(personhoodAttestations.userId, userId),
-        isNull(personhoodAttestations.revokedAt),
-        gt(personhoodAttestations.expiresAt, now),
-      ),
-    );
-  return row?.tier ?? 0;
-}
 
 async function loadActiveMission(db: Database, missionId: string, now: Date) {
   const m = await db.query.missions.findFirst({ where: eq(missions.id, missionId) });
@@ -299,7 +283,7 @@ export async function finalizeSubmission(
       })
       .where(and(eq(submissions.id, sub.id), eq(submissions.status, "awaiting_upload")))
       .returning();
-    if (row) await enqueueJob(tx, JOB_AI_PROCESS, { submissionId: row.id });
+    if (row) await enqueueJob(tx, JOB_AI_PROCESS, { submissionId: row.id }, now);
     return row;
   });
   // If the indexer got there first the row is already processing; return the current state.

@@ -24,6 +24,7 @@ import { foundry } from "viem/chains";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { buildFundingTransactions } from "../chain/funding";
+import { ViemRegistryGateway } from "../chain/registry-gateway";
 import { ChainRevertError } from "../chain/types";
 import { ViemEscrowGateway } from "../chain/viem-gateway";
 
@@ -193,6 +194,31 @@ describe.skipIf(!available)("ViemEscrowGateway on anvil", () => {
       stringToHex("blurry", { size: 32 }),
     );
     expect(res.txHash).toMatch(/^0x/);
+  });
+
+  it("writes personhood attestations and surfaces the double-nullifier revert", async () => {
+    const attester = new ViemRegistryGateway({
+      chainId: foundry.id,
+      rpcUrl: RPC,
+      registryAddress: registry,
+      attesterPrivateKey: KEYS[0]!, // registry was deployed with account 0 as attester
+    });
+    const wallet = privateKeyToAccount(KEYS[4]!).address;
+    const hash: Hex = `0x${"5e".repeat(32)}`;
+    const { txHash } = await attester.attest(wallet, 2, hash, 4_000_000_000n);
+    expect(txHash).toMatch(/^0x[0-9a-f]{64}$/);
+    const ok = await pub.readContract({
+      address: registry,
+      abi: personhoodRegistryAbi,
+      functionName: "isVerified",
+      args: [wallet, 2],
+    });
+    expect(ok).toBe(true);
+
+    const other = privateKeyToAccount(KEYS[6]!).address;
+    const err = await attester.attest(other, 2, hash, 4_000_000_000n).catch((e) => e);
+    expect(err).toBeInstanceOf(ChainRevertError);
+    expect(err.errorName).toBe("NullifierBoundToOtherWallet");
   });
 
   it("returns decoded events for the indexer", async () => {

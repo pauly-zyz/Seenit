@@ -26,6 +26,29 @@ const schema = z.object({
   SIWE_DOMAIN: z.string().min(1),
   /** Shared secret for /api/cron/* (sent as Bearer token). */
   CRON_SECRET: z.string().min(32),
+
+  REWARD_TOKEN_SYMBOL: z.string().default("USDG"),
+  REWARD_TOKEN_DECIMALS: z.coerce.number().int().min(0).max(18).default(6),
+
+  // --- Proof of personhood (each provider is enabled only when its config is complete) ---
+  /** Backend signer with ATTESTER_ROLE on PersonhoodRegistry. Required for any provider. */
+  ATTESTER_PRIVATE_KEY: privateKey.optional(),
+
+  HUMAN_PASSPORT_API_URL: z.url().default("https://api.passport.xyz"),
+  HUMAN_PASSPORT_API_KEY: z.string().min(1).optional(),
+  HUMAN_PASSPORT_SCORER_ID: z.string().regex(/^\d+$/).optional(),
+  HUMAN_PASSPORT_MIN_SCORE: z.coerce.number().positive().default(20),
+  HUMAN_PASSPORT_TTL_DAYS: z.coerce.number().int().positive().default(90),
+
+  SELF_APP_NAME: z.string().default("Seenit"),
+  SELF_SCOPE: z
+    .string()
+    .regex(/^[\x20-\x7e]{1,31}$/, "max 31 ASCII characters")
+    .optional(),
+  SELF_ENDPOINT: z.url().startsWith("https://").optional(),
+  SELF_MOCK_PASSPORT: z.stringbool().default(false),
+  SELF_DEEPLINK_CALLBACK: z.string().default("seenit://personhood"),
+  SELF_TTL_DAYS: z.coerce.number().int().positive().default(365),
 });
 
 export type AppConfig = {
@@ -39,6 +62,8 @@ export type AppConfig = {
   indexerStartBlock: bigint;
   siweDomain: string;
   cronSecret: string;
+  tokenSymbol: string;
+  tokenDecimals: number;
 };
 
 export type ServerEnv = z.infer<typeof schema>;
@@ -64,5 +89,7 @@ export function toAppConfig(env: ServerEnv): AppConfig {
     indexerStartBlock: env.INDEXER_START_BLOCK,
     siweDomain: env.SIWE_DOMAIN,
     cronSecret: env.CRON_SECRET,
+    tokenSymbol: env.REWARD_TOKEN_SYMBOL,
+    tokenDecimals: env.REWARD_TOKEN_DECIMALS,
   };
 }

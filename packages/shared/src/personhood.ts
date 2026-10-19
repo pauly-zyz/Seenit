@@ -35,3 +35,53 @@ export function requiredTier(
   if (rewardBaseUnits > tier1MaxReward) return PersonhoodTier.Self;
   return requested < PersonhoodTier.Passport ? PersonhoodTier.Passport : requested;
 }
+
+/** Database / API identifiers for personhood providers (snake_case, stable). */
+export const PERSONHOOD_PROVIDER_IDS = ["human_passport", "self"] as const;
+export type PersonhoodProviderId = (typeof PERSONHOOD_PROVIDER_IDS)[number];
+
+export interface TierAccess {
+  tier: 1 | 2;
+  name: string;
+  /** How a contributor gets this tier. */
+  howToVerify: string;
+  /** Which missions this tier opens, in plain words. */
+  unlocks: string;
+  unlocked: boolean;
+}
+
+/**
+ * Plain-language explanation of each tier for a contributor at `currentTier`.
+ * Mirrors the escrow rule: Tier 1 opens missions paying up to tier1MaxReward per capture,
+ * Tier 2 opens every mission.
+ */
+export function describeTierAccess(
+  currentTier: number,
+  opts: { tier1MaxReward: bigint; decimals: number; symbol: string },
+): TierAccess[] {
+  const cap = formatAmount(opts.tier1MaxReward, opts.decimals);
+  return [
+    {
+      tier: 1,
+      name: "Verified human",
+      howToVerify: "Reach the required Unique Humanity Score on Human Passport.",
+      unlocks: `Missions paying up to ${cap} ${opts.symbol} per capture.`,
+      unlocked: currentTier >= 1,
+    },
+    {
+      tier: 2,
+      name: "ID-verified human",
+      howToVerify:
+        "Scan your passport's NFC chip in the Self app. Only a zero-knowledge proof is shared.",
+      unlocks: `All missions, including those paying more than ${cap} ${opts.symbol} per capture.`,
+      unlocked: currentTier >= 2,
+    },
+  ];
+}
+
+function formatAmount(value: bigint, decimals: number): string {
+  const s = value.toString().padStart(decimals + 1, "0");
+  const whole = s.slice(0, s.length - decimals);
+  const frac = s.slice(s.length - decimals).replace(/0+$/, "");
+  return frac ? `${whole}.${frac.padEnd(2, "0")}` : `${whole}.00`;
+}

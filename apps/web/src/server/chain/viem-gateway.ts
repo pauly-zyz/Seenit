@@ -1,19 +1,7 @@
 import { missionEscrowAbi } from "@seenit/shared";
-import {
-  BaseError,
-  ContractFunctionRevertedError,
-  createPublicClient,
-  createWalletClient,
-  defineChain,
-  http,
-  parseEventLogs,
-  type Address,
-  type Hex,
-  type PublicClient,
-  type TransactionReceipt,
-} from "viem";
-import { nonceManager, privateKeyToAccount } from "viem/accounts";
+import { parseEventLogs, type Abi, type Address, type Hex, type TransactionReceipt } from "viem";
 
+import { type Clients, createClients, writeAndWait } from "./client";
 import { ChainRevertError, type EscrowEvent, type EscrowGateway } from "./types";
 
 const EVENT_NAMES = [
@@ -38,24 +26,21 @@ export class ViemEscrowGateway implements EscrowGateway {
   readonly chainId: number;
   readonly escrowAddress: Address;
   readonly tokenAddress: Address;
-  private readonly publicClient: PublicClient;
-  private readonly walletClient;
+  private readonly clients: Clients;
 
   constructor(opts: ViemGatewayOptions) {
     this.chainId = opts.chainId;
     this.escrowAddress = opts.escrowAddress;
     this.tokenAddress = opts.tokenAddress;
-    const chain = defineChain({
-      id: opts.chainId,
-      name: `chain-${opts.chainId}`,
-      nativeCurrency: { name: "Ether", symbol: "ETH", decimals: 18 },
-      rpcUrls: { default: { http: [opts.rpcUrl] } },
+    this.clients = createClients({
+      chainId: opts.chainId,
+      rpcUrl: opts.rpcUrl,
+      privateKey: opts.operatorPrivateKey,
     });
-    const transport = http(opts.rpcUrl, { retryCount: 2, timeout: 20_000 });
-    this.publicClient = createPublicClient({ chain, transport }) as PublicClient;
-    // nonceManager keeps nonces straight when several requests send transactions at once.
-    const account = privateKeyToAccount(opts.operatorPrivateKey, { nonceManager });
-    this.walletClient = createWalletClient({ account, chain, transport });
+  }
+
+  private get publicClient() {
+    return this.clients.publicClient;
   }
 
   async getMissionCreated(txHash: Hex) {
@@ -141,33 +126,15 @@ export class ViemEscrowGateway implements EscrowGateway {
       );
   }
 
-  /** Simulate (to surface revert reasons), send, wait for the receipt. */
-  private async write(
+  private write(
     functionName: "recordSubmission" | "acceptSubmission" | "rejectSubmission",
     args: readonly unknown[],
   ): Promise<TransactionReceipt> {
-    try {
-      const { request } = await this.publicClient.simulateContract({
-        address: this.escrowAddress,
-        abi: missionEscrowAbi,
-        functionName,
-        args: args as never,
-        account: this.walletClient.account,
-      });
-      const hash = await this.walletClient.writeContract(request as never);
-      const receipt = await this.publicClient.waitForTransactionReceipt({ hash, timeout: 60_000 });
-      if (receipt.status !== "success") throw new ChainRevertError(`${functionName} reverted`);
-      return receipt;
-    } catch (err) {
-      if (err instanceof ChainRevertError) throw err;
-      if (err instanceof BaseError) {
-        const revert = err.walk((e) => e instanceof ContractFunctionRevertedError);
-        if (revert instanceof ContractFunctionRevertedError) {
-          throw new ChainRevertError(`${functionName} reverted`, revert.data?.errorName);
-        }
-        throw new ChainRevertError(`${functionName} failed: ${err.shortMessage}`);
-      }
-      throw err;
-    }
+    return writeAndWait(this.clients, {
+      address: this.escrowAddress,
+      abi: missionEscrowAbi as Abi,
+      functionName,
+      args,
+    });
   }
 }

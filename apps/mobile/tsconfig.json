@@ -1,3 +1,7 @@
 {
-  "extends": ["expo/tsconfig.base", "../../tsconfig.base.json"]
+  "extends": ["expo/tsconfig.base", "../../tsconfig.base.json"],
+  "compilerOptions": {
+    // TypeScript 6 no longer loads @types/* automatically.
+    "types": ["jest"]
+  }
 }

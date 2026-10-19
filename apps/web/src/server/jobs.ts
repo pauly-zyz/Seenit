@@ -2,8 +2,14 @@ import { jobs, sql, type Database } from "@seenit/db";
 
 export const JOB_AI_PROCESS = "submission.ai_process";
 
-export async function enqueueJob(db: Database, type: string, payload: Record<string, unknown>) {
-  const [job] = await db.insert(jobs).values({ type, payload }).returning();
+/** `runAfter` should come from the services clock so it lines up with `claimJob(now)`. */
+export async function enqueueJob(
+  db: Database,
+  type: string,
+  payload: Record<string, unknown>,
+  runAfter: Date = new Date(),
+) {
+  const [job] = await db.insert(jobs).values({ type, payload, runAfter }).returning();
   return job!;
 }
 

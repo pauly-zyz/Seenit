@@ -2,6 +2,7 @@ import { sql } from "drizzle-orm";
 import {
   index,
   integer,
+  jsonb,
   pgTable,
   smallint,
   text,
@@ -10,7 +11,7 @@ import {
   uuid,
 } from "drizzle-orm/pg-core";
 
-import { personhoodProvider } from "./enums.js";
+import { personhoodProvider, verificationSessionStatus } from "./enums.js";
 
 const createdAt = () => timestamp("created_at", { withTimezone: true }).notNull().defaultNow();
 
@@ -37,11 +38,17 @@ export const personhoodAttestations = pgTable(
       .references(() => users.id, { onDelete: "cascade" }),
     provider: personhoodProvider("provider").notNull(),
     tier: smallint("tier").notNull(),
-    /** Provider nullifier hash. One identity, one account. */
+    /**
+     * keccak256 of the provider-scoped nullifier (0x hex). Same value is written on-chain.
+     * The raw nullifier is never stored. One identity, one account.
+     */
     nullifierHash: text("nullifier_hash").notNull(),
     expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+    verifiedAt: timestamp("verified_at", { withTimezone: true }).notNull().defaultNow(),
+    /** Non-personal verification summary (e.g. score/threshold). Never passport data. */
+    result: jsonb("result").$type<Record<string, unknown>>().notNull().default({}),
     revokedAt: timestamp("revoked_at", { withTimezone: true }),
-    /** PersonhoodRegistry.attest transaction. */
+    /** PersonhoodRegistry.attest transaction. Null until the attestation is on-chain. */
     txHash: text("tx_hash"),
     createdAt: createdAt(),
   },
@@ -107,4 +114,23 @@ export const apiKeys = pgTable(
       .on(t.funderId)
       .where(sql`${t.revokedAt} is null`),
   ],
+);
+
+/** Verification flows that finish out-of-band (e.g. Self app posts the proof to our callback). */
+export const verificationSessions = pgTable(
+  "verification_sessions",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    provider: personhoodProvider("provider").notNull(),
+    status: verificationSessionStatus("status").notNull().default("pending"),
+    /** Short machine-readable failure reason (never personal data). */
+    error: text("error"),
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+    completedAt: timestamp("completed_at", { withTimezone: true }),
+    createdAt: createdAt(),
+  },
+  (t) => [index("verification_sessions_user_idx").on(t.userId, t.provider, t.status)],
 );

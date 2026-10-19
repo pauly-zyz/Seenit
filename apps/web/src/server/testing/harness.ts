@@ -14,7 +14,16 @@ import { createApiKey } from "../auth/api-keys";
 import { createSession } from "../auth/sessions";
 import type { AppConfig } from "../config";
 import { setServices, type Services } from "../services";
-import { FakeEscrowGateway, FakeStorage } from "./fakes";
+import { HumanPassportProvider } from "../personhood/human-passport";
+import { SelfProvider } from "../personhood/self";
+import type { PersonhoodProvider } from "../personhood/types";
+import {
+  FakeEscrowGateway,
+  FakePassportApi,
+  FakeRegistryGateway,
+  FakeSelfVerifier,
+  FakeStorage,
+} from "./fakes";
 
 export const TEST_NOW = new Date("2026-10-19T10:00:00.000Z");
 
@@ -29,6 +38,17 @@ export const testConfig: AppConfig = {
   indexerStartBlock: 0n,
   siweDomain: "seenit.test",
   cronSecret: "test-cron-secret-that-is-long-enough-123",
+  tokenSymbol: "USDG",
+  tokenDecimals: 6,
+};
+
+export const SELF_TEST_CONFIG = {
+  appName: "Seenit",
+  scope: "seenit-test",
+  endpoint: "https://api.seenit.test/api/personhood/self/callback",
+  mockPassport: true,
+  deeplinkCallback: "seenit://personhood",
+  ttlDays: 365,
 };
 
 export type Harness = Awaited<ReturnType<typeof createHarness>>;
@@ -39,10 +59,31 @@ export async function createHarness() {
   let now = TEST_NOW;
   const chain = new FakeEscrowGateway(() => now);
   const storage = new FakeStorage();
+  const registry = new FakeRegistryGateway();
+  const passportApi = new FakePassportApi();
+  const selfVerifier = new FakeSelfVerifier();
+  const personhood = new Map<string, PersonhoodProvider>([
+    [
+      "human_passport",
+      new HumanPassportProvider(
+        {
+          apiUrl: "https://api.passport.test",
+          apiKey: "hp-test-key",
+          scorerId: "42",
+          minScore: 20,
+          ttlDays: 90,
+        },
+        passportApi.fetch,
+      ),
+    ],
+    ["self", new SelfProvider(SELF_TEST_CONFIG, selfVerifier)],
+  ]);
   const services: Services = {
     db,
     chain,
     storage,
+    registry,
+    personhood: personhood as Services["personhood"],
     logger: pino({ level: "silent" }),
     config: testConfig,
     now: () => now,
@@ -53,6 +94,10 @@ export async function createHarness() {
     db,
     chain,
     storage,
+    registry,
+    passportApi,
+    selfVerifier,
+    personhood,
     services,
     get now() {
       return now;
@@ -67,6 +112,9 @@ export async function createHarness() {
       await resetTestDb(db);
       chain.reset();
       storage.reset();
+      registry.reset();
+      passportApi.reset();
+      selfVerifier.reset();
       now = TEST_NOW;
       setServices(services);
     },
@@ -102,6 +150,7 @@ export async function seedContributor(db: Database, now: Date, opts: { tier?: 0 
       tier,
       nullifierHash: `nullifier-${account.address}`,
       expiresAt: new Date(now.getTime() + 365 * 86_400_000),
+      txHash: `0x${"aa".repeat(32)}`,
     });
   }
   const { token } = await createSession(db, user!.id, now);
