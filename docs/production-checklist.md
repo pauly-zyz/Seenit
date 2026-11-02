@@ -27,7 +27,7 @@ Not done from the build environment: it needs a funded deployer key, and the off
 
 - [ ] Vercel project with root directory `apps/web` (pnpm workspace detected; build `pnpm turbo run build --filter=@seenit/web`).
 - [ ] All server env vars from `apps/web/.env.example` in the Production environment (database, chain, keys, R2, SIWE domain = the production host, `CRON_SECRET` ≥ 32 chars, Human Passport, Self, `MEDIA_ENCRYPTION_KEYS`). `WEBHOOK_ALLOW_HTTP=false`. Never put secrets in `NEXT_PUBLIC_*`.
-- [ ] `apps/web/vercel.json` schedules `/api/cron/indexer` every minute; Vercel sends `Authorization: Bearer $CRON_SECRET`. Minute-level crons need a paid plan; otherwise run the indexer as a process (below).
+- [ ] `apps/web/vercel.json` sets the monorepo build (turbo builds the workspace packages first) and a **daily** `/api/cron/indexer` cron (Vercel sends `Authorization: Bearer $CRON_SECRET`); daily is the Hobby-plan limit. The API applies chain events itself right after each transaction, so the cron only catches up on events from other senders (permissionless `finalize`/`refund`, wallet-signed cancels). For minute-level catch-up use a paid plan (`* * * * *`) or run `pnpm -F @seenit/web indexer` next to the worker.
 - [ ] Self callback endpoint must be public https (`SELF_ENDPOINT`), and `SELF_MOCK_PASSPORT=false` in production.
 - [ ] Custom domain + HTTPS; check the security headers (`next.config.ts`) and that `x-real-ip` reaches the app.
 - [ ] Vercel functions open Postgres connections per instance: use the provider's pooled connection string.
