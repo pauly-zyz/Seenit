@@ -6,6 +6,11 @@ import { connection } from "next/server";
 import { z, type ZodType } from "zod";
 
 import { authenticateApiKey } from "./auth/api-keys";
+import {
+  authenticateFunderSession,
+  CSRF_HEADER,
+  FUNDER_SESSION_COOKIE,
+} from "./auth/funder-sessions";
 import { authenticateSession, SESSION_COOKIE } from "./auth/sessions";
 import { safeEqual } from "./crypto";
 import { AppError } from "./errors";
@@ -17,10 +22,14 @@ import { getServices, type Services } from "./services";
 type User = InferSelectModel<typeof users>;
 type Funder = InferSelectModel<typeof funders>;
 
-type AuthMode = "none" | "contributor" | "funder" | "cron";
+/**
+ * funder: API key (agents, SDK, MCP) or a dashboard session cookie.
+ * funderSession: dashboard session cookie only (e.g. managing API keys).
+ */
+type AuthMode = "none" | "contributor" | "funder" | "funderSession" | "cron";
 type AuthFor<A extends AuthMode> = A extends "contributor"
   ? { user: User }
-  : A extends "funder"
+  : A extends "funder" | "funderSession"
     ? { funder: Funder }
     : Record<string, never>;
 
@@ -66,6 +75,8 @@ function cookie(req: Request, name: string): string | null {
   return null;
 }
 
+const SAFE_METHODS = new Set(["GET", "HEAD", "OPTIONS"]);
+
 async function authenticate(mode: AuthMode, req: Request, s: Services, now: Date) {
   if (mode === "none") return { auth: {}, principal: null };
   if (mode === "cron") {
@@ -74,11 +85,26 @@ async function authenticate(mode: AuthMode, req: Request, s: Services, now: Date
       throw new AppError("unauthorized", "Invalid cron secret");
     return { auth: {}, principal: "cron" };
   }
-  if (mode === "funder") {
-    const key = req.headers.get("x-api-key") ?? bearer(req);
-    const found = key ? await authenticateApiKey(s.db, key, now) : null;
-    if (!found) throw new AppError("unauthorized", "Missing or invalid API key");
-    return { auth: { funder: found.funder }, principal: `funder:${found.funder.id}` };
+  if (mode === "funder" || mode === "funderSession") {
+    const key = mode === "funder" ? (req.headers.get("x-api-key") ?? bearer(req)) : null;
+    if (key) {
+      const found = await authenticateApiKey(s.db, key, now);
+      if (!found) throw new AppError("unauthorized", "Missing or invalid API key");
+      return { auth: { funder: found.funder }, principal: `funder:${found.funder.id}` };
+    }
+    const token = cookie(req, FUNDER_SESSION_COOKIE);
+    const funder = token ? await authenticateFunderSession(s.db, token, now) : null;
+    if (!funder) {
+      throw new AppError(
+        "unauthorized",
+        mode === "funder" ? "Missing or invalid API key" : "Sign in to the dashboard first",
+      );
+    }
+    // Cookies ride along on cross-site requests; a custom header can't without CORS approval.
+    if (!SAFE_METHODS.has(req.method) && req.headers.get(CSRF_HEADER) !== "1") {
+      throw new AppError("forbidden", `Missing ${CSRF_HEADER} header`);
+    }
+    return { auth: { funder }, principal: `funder:${funder.id}` };
   }
   const token = bearer(req) ?? cookie(req, SESSION_COOKIE);
   const user = token ? await authenticateSession(s.db, token, now) : null;

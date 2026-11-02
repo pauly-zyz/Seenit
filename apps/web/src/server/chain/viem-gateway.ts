@@ -111,6 +111,17 @@ export class ViemEscrowGateway implements EscrowGateway {
     return { txHash: receipt.transactionHash };
   }
 
+  async refundMission(missionId: bigint) {
+    const receipt = await this.write("refund", [missionId]);
+    const [log] = parseEventLogs({
+      abi: missionEscrowAbi,
+      logs: receipt.logs,
+      eventName: "MissionRefunded",
+    });
+    if (!log) throw new ChainRevertError("MissionRefunded event missing from receipt");
+    return { txHash: receipt.transactionHash, refunded: log.args.refunded };
+  }
+
   async verifyContractSignature(address: Address, message: string, signature: Hex) {
     try {
       return await this.publicClient.verifyMessage({ address, message, signature });
@@ -145,7 +156,7 @@ export class ViemEscrowGateway implements EscrowGateway {
   }
 
   private write(
-    functionName: "recordSubmission" | "acceptSubmission" | "rejectSubmission",
+    functionName: "recordSubmission" | "acceptSubmission" | "rejectSubmission" | "refund",
     args: readonly unknown[],
   ): Promise<TransactionReceipt> {
     return writeAndWait(this.clients, {

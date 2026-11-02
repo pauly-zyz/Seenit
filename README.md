@@ -83,6 +83,18 @@ Tests: `pnpm -F @seenit/mobile test` (jest-expo + React Native Testing Library; 
 
 Licence note: `@reown/appkit-react-native` is under the Reown AppKit Community License, which limits commercial use above certain thresholds. Review it before a commercial launch.
 
+### Funder dashboard
+
+`/dashboard` (apps/web) is a client app built on wagmi v3 + viem, connecting browser wallets (EIP-6963 / injected):
+
+- **Sign in** with Sign-In with Ethereum. The wallet is the funder account. The session is an httpOnly, SameSite=Strict cookie, and writes also need the `x-seenit-csrf` header.
+- **API keys**: create (shown once), see prefixes and last use, revoke.
+- **New mission**: pick the spot and radius on a map (Leaflet/OpenStreetMap), answer template, reward, captures, minimum tier, deadline. Then sign `approve` + `createMission` on Robinhood Chain; each transaction is decoded and checked (`seenit-sdk/viem`) before the wallet is asked.
+- **Missions**: status and escrow per mission (held, paid out, returned, refundable).
+- **Review**: blurred media, GPS fixes on a map, capture time, AI answer + confidence + review reasons. Accept / Reject (reason ≤ 32 bytes) send the on-chain transaction through the operator.
+- **Download** results as JSON or CSV. CSV cells are protected against spreadsheet formula injection.
+- **Refund** unused slots of expired missions (permissionless `refund`, sent by the operator).
+
 ### MCP server
 
 `apps/mcp` exposes `create_mission`, `confirm_mission`, `get_mission_status`, `get_results`, `list_templates` and `cancel_mission` to AI agents over stdio or Streamable HTTP. Missions are created as unfunded drafts; funding needs the user's explicit approval (client confirmation prompt when supported). Setup and Claude Desktop / Claude Code configuration: [`apps/mcp/README.md`](apps/mcp/README.md).
@@ -108,6 +120,12 @@ Licence note: `@reown/appkit-react-native` is under the Reown AppKit Community L
 | `GET /api/missions/:id/results`                     | API key               | Accepted answers + short-lived URLs to blurred media + on-chain proof                     |
 | `GET /api/missions/:id/submissions[?status]`        | API key               | Review queue: AI answer, confidence, quality flags, blurred frames (`needs_review` first) |
 | `GET/PUT/DELETE /api/webhook`                       | API key               | Webhook URL for `submission.processed`; `PUT` returns the signing secret once             |
+| `POST /api/funder/auth/verify` / `logout`           | none / session        | Dashboard SIWE sign-in (funder session cookie)                                            |
+| `GET /api/funder/me`                                | session               | Signed-in funder + chain/token facts                                                      |
+| `GET/POST /api/funder/api-keys`, `DELETE …/:id`     | session               | List / create (key shown once) / revoke API keys                                          |
+| `GET /api/missions`                                 | API key or session    | Your missions with submission counts and escrow state                                     |
+| `POST /api/missions/:id/refund`                     | API key or session    | After the deadline: refund unused slots (operator sends `refund`)                         |
+| `GET /api/missions/:id/export?format=json\|csv`     | API key or session    | Download results (`scope=all` adds unresolved submissions)                                |
 | `GET /api/meta`                                     | none                  | Chain id, escrow, reward token (address, symbol, decimals), Tier 1 reward limit           |
 | `GET /api/missions/:id/status`                      | API key               | Status, slots, submissions per status, payouts, funding txs while unfunded                |
 | `POST /api/missions/:id/cancel`                     | API key               | Draft: close now. Live: returns `cancelMission` tx; send again with `txHash` once mined   |

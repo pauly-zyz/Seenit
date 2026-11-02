@@ -19,6 +19,8 @@ import { AppError, notFound } from "../errors";
 import type { Services } from "../services";
 import { applyMissionCreated } from "./sync";
 
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 export type MissionRow = InferSelectModel<typeof missions>;
 
 import { SLOT_HOLDING } from "./statuses";
@@ -121,6 +123,7 @@ export function fundingFor(s: Services, m: MissionRow) {
 }
 
 export async function getFunderMission(db: Database, funderId: string, missionId: string) {
+  if (!UUID.test(missionId)) throw notFound("Mission");
   const m = await db.query.missions.findFirst({
     where: and(eq(missions.id, missionId), eq(missions.funderId, funderId)),
   });

@@ -97,6 +97,20 @@ export const funders = pgTable(
   (t) => [index("funders_wallet_idx").on(t.wallet)],
 );
 
+/** Dashboard sessions for funders (Sign-In with Ethereum). Only the SHA-256 of the token is stored. */
+export const funderSessions = pgTable(
+  "funder_sessions",
+  {
+    tokenHash: text("token_hash").primaryKey(),
+    funderId: uuid("funder_id")
+      .notNull()
+      .references(() => funders.id, { onDelete: "cascade" }),
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+    createdAt: createdAt(),
+  },
+  (t) => [index("funder_sessions_funder_idx").on(t.funderId)],
+);
+
 /** API keys for funders/agents. Only the SHA-256 hash is stored, plus a display prefix. */
 export const apiKeys = pgTable(
   "api_keys",

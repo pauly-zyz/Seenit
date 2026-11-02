@@ -192,3 +192,27 @@ describe("units", () => {
     expect(formatAmount(2_500_000n, 6, "USDG")).toBe("2.50 USDG");
   });
 });
+
+describe("dashboard endpoints", () => {
+  it("lists missions, refunds, and downloads exports as text", async () => {
+    const csv = "submission_id,status\r\ns1,accepted\r\n";
+    const calls: string[] = [];
+    const fetchFn = (async (url: string, init: RequestInit) => {
+      calls.push(`${init.method} ${url.replace("https://x.test", "")}`);
+      if (url.includes("/export"))
+        return new Response(csv, { headers: { "content-type": "text/csv" } });
+      if (url.endsWith("/refund"))
+        return new Response(JSON.stringify({ refunded: "2000000", txHash: "0x1", mission: {} }));
+      return new Response(JSON.stringify({ token: { symbol: "USDG", decimals: 6 }, missions: [] }));
+    }) as unknown as typeof fetch;
+    const s = new Seenit({ apiKey: "k", baseUrl: "https://x.test", fetch: fetchFn });
+    expect((await s.missions.list()).token.symbol).toBe("USDG");
+    expect((await s.missions.refund("m1")).refunded).toBe("2000000");
+    expect(await s.missions.export("m1", { format: "csv" })).toBe(csv);
+    expect(calls).toEqual([
+      "GET /api/missions",
+      "POST /api/missions/m1/refund",
+      "GET /api/missions/m1/export?format=csv&scope=accepted",
+    ]);
+  });
+});

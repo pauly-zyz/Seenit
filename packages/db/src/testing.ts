@@ -18,7 +18,7 @@ export async function createTestDb(): Promise<{ db: Database; close: () => Promi
 /** Empties every table, keeping the schema. */
 export async function resetTestDb(db: Database): Promise<void> {
   await db.execute(
-    sql`truncate table payouts, submissions, missions, api_keys, funders, sessions,
+    sql`truncate table funder_sessions, payouts, submissions, missions, api_keys, funders, sessions,
       auth_nonces, verification_sessions, personhood_attestations, users, jobs, rate_limits, indexer_state, chain_events
       restart identity cascade`,
   );

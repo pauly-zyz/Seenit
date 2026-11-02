@@ -46,7 +46,12 @@ export class FakeEscrowGateway implements EscrowGateway {
   }
 
   /** Make the next call to `fn` throw. */
-  failNext(fn: "recordSubmission" | "acceptSubmission" | "rejectSubmission", errorName?: string) {
+  refundAmount = 4_000_000n;
+
+  failNext(
+    fn: "recordSubmission" | "acceptSubmission" | "rejectSubmission" | "refundMission",
+    errorName?: string,
+  ) {
     this.failures.set(fn, new ChainRevertError(`${fn} reverted`, errorName));
   }
 
@@ -91,6 +96,12 @@ export class FakeEscrowGateway implements EscrowGateway {
     this.calls.push({ fn: "rejectSubmission", args: [submissionId, reason] });
     this.maybeFail("rejectSubmission");
     return { txHash: this.txHash() };
+  }
+
+  async refundMission(missionId: bigint) {
+    this.calls.push({ fn: "refundMission", args: [missionId] });
+    this.maybeFail("refundMission");
+    return { txHash: this.txHash(), refunded: this.refundAmount };
   }
 
   async verifyContractSignature() {

@@ -16,13 +16,29 @@ export async function issueNonce(db: Database, now: Date) {
 
 /**
  * Verifies an EIP-4361 message + signature and returns the (created on first login) user.
- * Checks domain, chain, time bounds, single-use nonce, then the signature (EOA via ecrecover,
- * smart-contract wallets via ERC-1271/6492 on-chain).
  */
 export async function verifySiwe(
   deps: { db: Database; chain: EscrowGateway; domain: string; chainId: number; now: Date },
   input: { message: string; signature: Hex },
 ) {
+  const wallet = (await verifySiweSignature(deps, input)).toLowerCase();
+  const [user] = await deps.db
+    .insert(users)
+    .values({ wallet })
+    .onConflictDoUpdate({ target: users.wallet, set: { wallet } })
+    .returning();
+  return user!;
+}
+
+/**
+ * Verifies an EIP-4361 message + signature and returns the signing address.
+ * Checks domain, chain, time bounds, single-use nonce, then the signature (EOA via ecrecover,
+ * smart-contract wallets via ERC-1271/6492 on-chain).
+ */
+export async function verifySiweSignature(
+  deps: { db: Database; chain: EscrowGateway; domain: string; chainId: number; now: Date },
+  input: { message: string; signature: Hex },
+): Promise<Hex> {
   const fields = parseSiweMessage(input.message);
   if (!fields.address || !fields.nonce)
     throw new AppError("unauthorized", "Malformed SIWE message");
@@ -63,12 +79,5 @@ export async function verifySiwe(
     (signer !== null && isAddressEqual(signer as Hex, address)) ||
     (await deps.chain.verifyContractSignature(address, input.message, input.signature));
   if (!ok) throw new AppError("unauthorized", "Signature does not match the address");
-
-  const wallet = address.toLowerCase();
-  const [user] = await deps.db
-    .insert(users)
-    .values({ wallet })
-    .onConflictDoUpdate({ target: users.wallet, set: { wallet } })
-    .returning();
-  return user!;
+  return address;
 }

@@ -1,6 +1,8 @@
 import type {
   CancelResult,
   CreateMissionResult,
+  MissionListResponse,
+  RefundResult,
   Hex,
   MediaType,
   Meta,
@@ -126,6 +128,20 @@ export class Seenit {
     path: string,
     opts: { body?: unknown; auth?: boolean } = {},
   ): Promise<T> {
+    const text = await this.send(method, path, opts);
+    return (text ? safeJson(text) : null) as T;
+  }
+
+  /** Like `request` but returns the raw body (exports). */
+  requestText(method: Method, path: string, opts: { body?: unknown; auth?: boolean } = {}) {
+    return this.send(method, path, opts);
+  }
+
+  private async send(
+    method: Method,
+    path: string,
+    opts: { body?: unknown; auth?: boolean },
+  ): Promise<string> {
     const headers: Record<string, string> = { accept: "application/json" };
     if (opts.auth !== false) {
       if (!this.apiKey)
@@ -161,8 +177,8 @@ export class Seenit {
         throw e;
       }
       const text = await res.text();
+      if (res.ok) return text;
       const json = text ? safeJson(text) : null;
-      if (res.ok) return json as T;
 
       const err = (
         json as {
@@ -235,6 +251,28 @@ class MissionsApi {
   ): Promise<SubmissionsResponse> {
     const q = opts.status ? `?status=${enc(opts.status)}` : "";
     return this.c.request("GET", `/api/missions/${enc(missionId)}/submissions${q}`);
+  }
+
+  /** Your missions (newest first) with submission counts and escrow state. */
+  list(): Promise<MissionListResponse> {
+    return this.c.request("GET", "/api/missions");
+  }
+
+  /**
+   * After the deadline, returns unused slots to the funder wallet. `refund` is permissionless
+   * on-chain, so Seenit's operator sends it: no signature or gas needed from you.
+   */
+  refund(missionId: string): Promise<RefundResult> {
+    return this.c.request("POST", `/api/missions/${enc(missionId)}/refund`, { body: {} });
+  }
+
+  /** Results export as text: CSV (answer fields flattened) or JSON. `scope: "all"` adds unresolved submissions. */
+  export(
+    missionId: string,
+    opts: { format: "csv" | "json"; scope?: "accepted" | "all" },
+  ): Promise<string> {
+    const q = `?format=${opts.format}&scope=${opts.scope ?? "accepted"}`;
+    return this.c.requestText("GET", `/api/missions/${enc(missionId)}/export${q}`);
   }
 
   /**

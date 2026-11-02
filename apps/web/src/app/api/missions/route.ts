@@ -1,5 +1,6 @@
 import { missionSpecSchema } from "@seenit/shared";
 
+import { listFunderMissions } from "@/server/domain/dashboard";
 import { createMission } from "@/server/domain/missions";
 import { json } from "@/server/json";
 import { route } from "@/server/route";
@@ -17,4 +18,10 @@ export const POST = route(
   },
   async ({ body, auth, services, now }) =>
     json(await createMission(services, auth.funder, body, now), { status: 201 }),
+);
+
+/** The funder's missions with submission counts and escrow state (dashboard list). */
+export const GET = route(
+  { name: "missions.list", auth: "funder", rateLimit: { limit: 120, windowSeconds: 60 } },
+  async ({ auth, services, now }) => listFunderMissions(services, auth.funder.id, now),
 );

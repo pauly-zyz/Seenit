@@ -76,6 +76,49 @@ export interface CreateMissionResult {
   funding: Funding;
 }
 
+/** Escrow state of a mission in `missions.list()` (base units). */
+export interface EscrowSummary {
+  funded: string;
+  /** Payouts + platform fees. */
+  paidOut: string;
+  paidToContributors: string;
+  platformFees: string;
+  /** Rewards held for submissions waiting for a decision. */
+  inReview: string;
+  /** Free slots: refundable after the deadline, or already returned if closed. */
+  unused: string;
+  returned: string;
+  /** Still locked in the contract. */
+  held: string;
+  expired: boolean;
+  /** Deadline passed with unused slots: `missions.refund(id)` returns them. */
+  refundable: boolean;
+}
+
+export interface MissionListItem extends Mission {
+  funderWallet: string | null;
+  submissions: {
+    processing: number;
+    ready: number;
+    needsReview: number;
+    accepted: number;
+    rejected: number;
+  };
+  escrow: EscrowSummary;
+}
+
+export interface MissionListResponse {
+  token: { symbol: string; decimals: number };
+  missions: MissionListItem[];
+}
+
+export interface RefundResult {
+  mission: Mission;
+  /** Amount returned to the funder (null if it was already closed). */
+  refunded: string | null;
+  txHash: Hex | null;
+}
+
 export interface MissionStatusResult {
   mission: Mission;
   escrow: { total: string; paidToContributors: string; platformFees: string };

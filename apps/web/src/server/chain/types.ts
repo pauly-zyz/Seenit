@@ -79,6 +79,8 @@ export interface EscrowGateway {
   ): Promise<{ txHash: Hex; submissionId: bigint; reviewDeadline: bigint }>;
   acceptSubmission(submissionId: bigint): Promise<{ txHash: Hex; payout: bigint; fee: bigint }>;
   rejectSubmission(submissionId: bigint, reason: Hex): Promise<{ txHash: Hex }>;
+  /** Permissionless refund of unused slots after the deadline (sent by the operator). */
+  refundMission(missionId: bigint): Promise<{ txHash: Hex; refunded: bigint }>;
   /** ERC-1271 / ERC-6492 signature check for smart-contract wallets. */
   verifyContractSignature(address: Address, message: string, signature: Hex): Promise<boolean>;
   getBlockNumber(): Promise<bigint>;
