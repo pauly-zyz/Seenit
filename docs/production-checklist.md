@@ -25,7 +25,7 @@ Not done from the build environment: it needs a funded deployer key, and the off
 
 ### Web + API (Vercel)
 
-- [ ] Vercel project with root directory `apps/web` (pnpm workspace detected; build `pnpm turbo run build --filter=@seenit/web`).
+- [ ] Vercel project with root directory `apps/web`. `apps/web/vercel.json` installs the whole workspace (rewriting `git@github.com:` to https, for two git-pinned dependencies of the Self SDK) and builds with `pnpm turbo run build --filter=@seenit/web`.
 - [ ] All server env vars from `apps/web/.env.example` in the Production environment (database, chain, keys, R2, SIWE domain = the production host, `CRON_SECRET` ≥ 32 chars, Human Passport, Self, `MEDIA_ENCRYPTION_KEYS`). `WEBHOOK_ALLOW_HTTP=false`. Never put secrets in `NEXT_PUBLIC_*`.
 - [ ] `apps/web/vercel.json` sets the monorepo build (turbo builds the workspace packages first) and a **daily** `/api/cron/indexer` cron (Vercel sends `Authorization: Bearer $CRON_SECRET`); daily is the Hobby-plan limit. The API applies chain events itself right after each transaction, so the cron only catches up on events from other senders (permissionless `finalize`/`refund`, wallet-signed cancels). For minute-level catch-up use a paid plan (`* * * * *`) or run `pnpm -F @seenit/web indexer` next to the worker.
 - [ ] Self callback endpoint must be public https (`SELF_ENDPOINT`), and `SELF_MOCK_PASSPORT=false` in production.

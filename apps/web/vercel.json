@@ -1,5 +1,6 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
+  "installCommand": "git config --global url.\"https://github.com/\".insteadOf \"git@github.com:\" && cd ../.. && pnpm install --frozen-lockfile",
   "buildCommand": "cd ../.. && pnpm turbo run build --filter=@seenit/web",
   "crons": [{ "path": "/api/cron/indexer", "schedule": "0 3 * * *" }]
 }

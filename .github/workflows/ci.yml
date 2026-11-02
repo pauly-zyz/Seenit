@@ -27,6 +27,8 @@ jobs:
         with:
           node-version: 22
           cache: pnpm
+      # Two transitive deps of @selfxyz/* are pinned as git@github.com URLs; fetch them over https.
+      - run: git config --global url."https://github.com/".insteadOf "git@github.com:"
       - run: pnpm install --frozen-lockfile
         working-directory: .
       - run: pnpm export-abi && git diff --exit-code -- ../shared/src
@@ -42,6 +44,8 @@ jobs:
           cache: pnpm
       # The submission worker's tests extract frames from a generated video.
       - run: sudo apt-get update && sudo apt-get install -y --no-install-recommends ffmpeg
+      # Two transitive deps of @selfxyz/* are pinned as git@github.com URLs; fetch them over https.
+      - run: git config --global url."https://github.com/".insteadOf "git@github.com:"
       - run: pnpm install --frozen-lockfile
       - run: pnpm format:check
       - run: pnpm turbo run lint typecheck build test --filter=!@seenit/contracts
