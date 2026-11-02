@@ -62,6 +62,24 @@ export class ViemEscrowGateway implements EscrowGateway {
     return { ...log.args, txHash };
   }
 
+  async getMissionCancelled(txHash: Hex) {
+    let receipt: TransactionReceipt;
+    try {
+      receipt = await this.publicClient.getTransactionReceipt({ hash: txHash });
+    } catch {
+      return null;
+    }
+    if (receipt.status !== "success") return null;
+    const [log] = parseEventLogs({
+      abi: missionEscrowAbi,
+      logs: receipt.logs.filter(
+        (l) => l.address.toLowerCase() === this.escrowAddress.toLowerCase(),
+      ),
+      eventName: "MissionCancelled",
+    });
+    return log ? { missionId: log.args.missionId, refunded: log.args.refunded } : null;
+  }
+
   async recordSubmission(missionId: bigint, contributor: Address, mediaHash: Hex) {
     const receipt = await this.write("recordSubmission", [missionId, contributor, mediaHash]);
     const [log] = parseEventLogs({

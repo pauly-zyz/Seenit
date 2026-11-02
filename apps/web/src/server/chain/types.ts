@@ -70,6 +70,8 @@ export interface EscrowGateway {
   readonly tokenAddress: Address;
   /** Parses MissionCreated from a confirmed tx. Null if the tx is unknown, pending or has no such event. */
   getMissionCreated(txHash: Hex): Promise<(MissionCreatedEvent & { txHash: Hex }) | null>;
+  /** Parses MissionCancelled from a confirmed tx. Null if unknown, pending or no such event. */
+  getMissionCancelled(txHash: Hex): Promise<{ missionId: bigint; refunded: bigint } | null>;
   recordSubmission(
     missionId: bigint,
     contributor: Address,

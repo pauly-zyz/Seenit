@@ -49,3 +49,17 @@ export function buildFundingTransactions(args: {
     ],
   };
 }
+
+/** The funder's cancelMission transaction (refunds unused slots immediately). */
+export function buildCancelTransaction(args: { escrow: Address; onchainId: bigint }): TxRequest {
+  return {
+    to: args.escrow,
+    data: encodeFunctionData({
+      abi: missionEscrowAbi,
+      functionName: "cancelMission",
+      args: [args.onchainId],
+    }),
+    value: "0",
+    description: "Cancel the mission and refund unused slots",
+  };
+}

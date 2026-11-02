@@ -20,6 +20,7 @@ export class FakeEscrowGateway implements EscrowGateway {
   readonly tokenAddress: Address = "0x0000000000000000000000000000000000007070";
 
   minedMissions = new Map<string, MissionCreatedEvent & { txHash: Hex }>();
+  minedCancels = new Map<string, { missionId: bigint; refunded: bigint }>();
   calls: { fn: string; args: unknown[] }[] = [];
   events: EscrowEvent[] = [];
   blockNumber = 0n;
@@ -34,6 +35,7 @@ export class FakeEscrowGateway implements EscrowGateway {
 
   reset() {
     this.minedMissions.clear();
+    this.minedCancels.clear();
     this.calls = [];
     this.events = [];
     this.blockNumber = 0n;
@@ -64,6 +66,11 @@ export class FakeEscrowGateway implements EscrowGateway {
   async getMissionCreated(txHash: Hex) {
     this.calls.push({ fn: "getMissionCreated", args: [txHash] });
     return this.minedMissions.get(txHash) ?? null;
+  }
+
+  async getMissionCancelled(txHash: Hex) {
+    this.calls.push({ fn: "getMissionCancelled", args: [txHash] });
+    return this.minedCancels.get(txHash) ?? null;
   }
 
   async recordSubmission(missionId: bigint, contributor: Address, mediaHash: Hex) {

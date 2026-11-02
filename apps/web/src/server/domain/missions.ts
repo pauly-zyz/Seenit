@@ -96,26 +96,27 @@ export async function createMission(
     })
     .returning();
 
+  return { mission: publicMission(mission!), funding: fundingFor(s, mission!) };
+}
+
+/** The approve + createMission transactions that fund a saved mission. */
+export function fundingFor(s: Services, m: MissionRow) {
   const funding = buildFundingTransactions({
     escrow: s.chain.escrowAddress,
     token: s.chain.tokenAddress,
-    rewardPerCapture: reward,
-    maxCaptures: spec.maxSubmissions,
-    deadline: BigInt(Math.floor(deadline.getTime() / 1000)),
-    minTier,
-    specHash,
+    rewardPerCapture: BigInt(m.reward),
+    maxCaptures: m.maxCaptures,
+    deadline: BigInt(Math.floor(m.deadline.getTime() / 1000)),
+    minTier: m.minTier,
+    specHash: m.specHash as Hex,
   });
-
   return {
-    mission: publicMission(mission!),
-    funding: {
-      chainId: s.chain.chainId,
-      escrow: s.chain.escrowAddress,
-      token: s.chain.tokenAddress,
-      total: funding.total,
-      transactions: funding.transactions,
-      next: `POST /api/missions/${id}/confirm with the createMission txHash once it is mined`,
-    },
+    chainId: s.chain.chainId,
+    escrow: s.chain.escrowAddress,
+    token: s.chain.tokenAddress,
+    total: funding.total,
+    transactions: funding.transactions,
+    next: `POST /api/missions/${m.id}/confirm with the createMission txHash once it is mined`,
   };
 }
 

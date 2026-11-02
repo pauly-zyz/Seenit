@@ -6,15 +6,16 @@ See [`CLAUDE.md`](./CLAUDE.md) for the product brief and engineering principles.
 
 ## Layout
 
-| Path                     | What                                                         | Status                                |
-| ------------------------ | ------------------------------------------------------------ | ------------------------------------- |
-| `apps/web`               | Next.js 16 (App Router, TypeScript, Tailwind 4)              | placeholder page                      |
-| `apps/mobile`            | Expo SDK 58 (React Native, TypeScript)                       | contributor app + tests               |
-| `apps/mcp`               | MCP server for AI agents (`@modelcontextprotocol/server` v2) | stdio server, no tools yet            |
-| `packages/contracts`     | Foundry: `MissionEscrow`, `PersonhoodRegistry`               | implemented, 100% test coverage       |
-| `packages/db`            | Drizzle ORM + Postgres (`pg`)                                | client + config, empty schema         |
-| `packages/shared`        | Shared types, Zod schemas, chain constants                   | chain/mission/capture schemas + tests |
-| `packages/eslint-config` | Shared ESLint flat configs (`base`, `next`, `expo`)          | —                                     |
+| Path                     | What                                                              | Status                                |
+| ------------------------ | ----------------------------------------------------------------- | ------------------------------------- |
+| `apps/web`               | Next.js 16 (App Router, TypeScript, Tailwind 4)                   | placeholder page                      |
+| `apps/mobile`            | Expo SDK 58 (React Native, TypeScript)                            | contributor app + tests               |
+| `apps/mcp`               | MCP server for AI agents (`@modelcontextprotocol/server` v2)      | 6 tools, stdio + Streamable HTTP      |
+| `packages/contracts`     | Foundry: `MissionEscrow`, `PersonhoodRegistry`                    | implemented, 100% test coverage       |
+| `packages/db`            | Drizzle ORM + Postgres (`pg`)                                     | client + config, empty schema         |
+| `packages/sdk`           | `seenit-sdk`: TypeScript client for the REST API (+ viem helpers) | publishable package + examples        |
+| `packages/shared`        | Shared types, Zod schemas, chain constants                        | chain/mission/capture schemas + tests |
+| `packages/eslint-config` | Shared ESLint flat configs (`base`, `next`, `expo`)               | —                                     |
 
 Tooling: pnpm workspaces + Turborepo, one TypeScript version via the pnpm catalog (`pnpm-workspace.yaml`), shared `tsconfig.base.json` / `tsconfig.node.json`, Prettier at the root.
 
@@ -84,15 +85,11 @@ Licence note: `@reown/appkit-react-native` is under the Reown AppKit Community L
 
 ### MCP server
 
-The server speaks MCP over stdio. To try it with an MCP client, build it and point the client at it:
+`apps/mcp` exposes `create_mission`, `confirm_mission`, `get_mission_status`, `get_results`, `list_templates` and `cancel_mission` to AI agents over stdio or Streamable HTTP. Missions are created as unfunded drafts; funding needs the user's explicit approval (client confirmation prompt when supported). Setup and Claude Desktop / Claude Code configuration: [`apps/mcp/README.md`](apps/mcp/README.md).
 
-```json
-{
-  "mcpServers": {
-    "seenit": { "command": "node", "args": ["/abs/path/to/Seenit/apps/mcp/dist/index.js"] }
-  }
-}
-```
+### SDK
+
+`packages/sdk` (`seenit-sdk`) wraps the same REST API for TypeScript apps and agents, with optional viem helpers to fund/cancel from your own wallet and webhook verification. See [`packages/sdk/README.md`](packages/sdk/README.md).
 
 ### API (apps/web)
 
@@ -111,6 +108,9 @@ The server speaks MCP over stdio. To try it with an MCP client, build it and poi
 | `GET /api/missions/:id/results`                     | API key               | Accepted answers + short-lived URLs to blurred media + on-chain proof                     |
 | `GET /api/missions/:id/submissions[?status]`        | API key               | Review queue: AI answer, confidence, quality flags, blurred frames (`needs_review` first) |
 | `GET/PUT/DELETE /api/webhook`                       | API key               | Webhook URL for `submission.processed`; `PUT` returns the signing secret once             |
+| `GET /api/meta`                                     | none                  | Chain id, escrow, reward token (address, symbol, decimals), Tier 1 reward limit           |
+| `GET /api/missions/:id/status`                      | API key               | Status, slots, submissions per status, payouts, funding txs while unfunded                |
+| `POST /api/missions/:id/cancel`                     | API key               | Draft: close now. Live: returns `cancelMission` tx; send again with `txHash` once mined   |
 | `GET /api/mission-templates`                        | none                  | Ready-made output schemas: `stock_check`, `store_open`, `construction_progress`, ...      |
 | `GET /api/cron/indexer`                             | `Bearer $CRON_SECRET` | Sync MissionEscrow events into the database                                               |
 

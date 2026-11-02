@@ -1,0 +1,56 @@
+{
+  "name": "seenit-sdk",
+  "version": "0.1.0",
+  "description": "TypeScript client for the Seenit API: create real-world photo/video missions, fund them and read structured answers.",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./viem": {
+      "types": "./dist/viem.d.ts",
+      "default": "./dist/viem.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "sideEffects": false,
+  "engines": {
+    "node": ">=20"
+  },
+  "keywords": [
+    "seenit",
+    "mcp",
+    "ai-agents",
+    "robinhood-chain"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "dev": "tsc -p tsconfig.build.json --watch --preserveWatchOutput",
+    "lint": "eslint .",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run"
+  },
+  "peerDependencies": {
+    "viem": "^2.0.0"
+  },
+  "peerDependenciesMeta": {
+    "viem": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "@seenit/eslint-config": "workspace:*",
+    "@seenit/shared": "workspace:*",
+    "@types/node": "catalog:",
+    "eslint": "catalog:",
+    "typescript": "catalog:",
+    "viem": "^2.57.7",
+    "vitest": "catalog:"
+  }
+}

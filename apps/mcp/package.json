@@ -1,6 +1,6 @@
 {
   "name": "@seenit/mcp",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "private": true,
   "type": "module",
   "description": "MCP server that lets AI agents create and track Seenit missions.",
@@ -13,13 +13,20 @@
     "start": "node --env-file-if-exists=.env dist/index.js",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run"
+    "test": "vitest run",
+    "start:http": "node --env-file-if-exists=.env dist/index.js --http",
+    "dev:http": "tsx watch --clear-screen=false src/index.ts --http"
   },
   "dependencies": {
-    "@modelcontextprotocol/server": "^2.3.1",
-    "zod": "catalog:"
+    "@modelcontextprotocol/node": "^2.1.2",
+    "@modelcontextprotocol/server": "^2.4.0",
+    "viem": "^2.57.7",
+    "zod": "catalog:",
+    "seenit-sdk": "workspace:*",
+    "@seenit/shared": "workspace:*"
   },
   "devDependencies": {
+    "@modelcontextprotocol/client": "^2.4.0",
     "@seenit/eslint-config": "workspace:*",
     "@types/node": "catalog:",
     "eslint": "catalog:",

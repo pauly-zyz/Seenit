@@ -41,7 +41,7 @@ export async function applyMissionCreated(db: Database, ev: MissionCreatedEvent 
   return row ?? null;
 }
 
-async function applyMissionClosed(
+export async function applyMissionClosed(
   db: Database,
   missionId: bigint,
   status: "cancelled" | "refunded",
