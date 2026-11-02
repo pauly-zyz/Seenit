@@ -54,10 +54,24 @@ export interface RouteOptions<A extends AuthMode, B> {
   rateLimit?: RateLimitRule;
 }
 
-function clientIp(req: Request): string {
-  const fwd = req.headers.get("x-forwarded-for");
-  return fwd?.split(",")[0]?.trim() || req.headers.get("x-real-ip") || "unknown";
+/**
+ * Client IP for rate limiting. Clients can put anything at the start of X-Forwarded-For, so trust
+ * x-real-ip (set by Vercel / the reverse proxy) or else the right-most X-Forwarded-For entry,
+ * which the nearest proxy appended.
+ */
+export function clientIp(req: Request): string {
+  const real = req.headers.get("x-real-ip")?.trim();
+  if (real) return real;
+  const hops = req.headers
+    .get("x-forwarded-for")
+    ?.split(",")
+    .map((h) => h.trim())
+    .filter(Boolean);
+  return hops?.at(-1) || "unknown";
 }
+
+/** Applied when a route doesn't set its own limit, so no endpoint is ever unlimited. */
+export const DEFAULT_RATE_LIMIT: RateLimitRule = { limit: 120, windowSeconds: 60 };
 
 function bearer(req: Request): string | null {
   const h = req.headers.get("authorization");
@@ -137,14 +151,12 @@ export function route<A extends AuthMode, B = undefined, P = Record<string, stri
 
     try {
       const { auth, principal } = await authenticate(opts.auth, req, services, now);
-      if (opts.rateLimit) {
-        await enforceRateLimit(
-          services.db,
-          `${opts.name}:${principal ?? `ip:${ip}`}`,
-          opts.rateLimit,
-          now,
-        );
-      }
+      await enforceRateLimit(
+        services.db,
+        `${opts.name}:${principal ?? `ip:${ip}`}`,
+        opts.rateLimit ?? DEFAULT_RATE_LIMIT,
+        now,
+      );
 
       let body = undefined as B;
       if (opts.body) {

@@ -111,7 +111,7 @@ function setup(opts: { allowance?: bigint; chainId?: number; status?: string } =
     }
     if (path.endsWith("/confirm")) {
       state = "active";
-      return json({ ...mission, status: "active", onchainId: "7" });
+      return json({ mission: { ...mission, status: "active", onchainId: "7" } }); // real API shape
     }
     if (path.endsWith("/cancel")) {
       const body = JSON.parse(init.body as string);

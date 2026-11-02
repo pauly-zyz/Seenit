@@ -6,6 +6,7 @@ import { parseEnv } from "../config";
 import { AppError } from "../errors";
 import { claimJob, completeJob, enqueueJob, failJob } from "../jobs";
 import { enforceRateLimit } from "../rate-limit";
+import { clientIp, DEFAULT_RATE_LIMIT, route } from "../route";
 import { createHarness, type Harness } from "../testing/harness";
 
 let h: Harness;
@@ -33,6 +34,27 @@ describe("rate limiting", () => {
     await enforceRateLimit(h.db, "b", rule, h.now);
     await enforceRateLimit(h.db, "a", rule, new Date(h.now.getTime() + 60_000));
     expect((await h.db.select().from(rateLimits)).length).toBe(3);
+  });
+});
+
+describe("client IP and default limits", () => {
+  const req = (headers: Record<string, string>) => new Request("http://x/", { headers });
+
+  it("ignores client-supplied X-Forwarded-For prefixes", () => {
+    expect(clientIp(req({ "x-forwarded-for": "6.6.6.6, 203.0.113.9" }))).toBe("203.0.113.9");
+    expect(
+      clientIp(req({ "x-forwarded-for": "6.6.6.6, 203.0.113.9", "x-real-ip": "198.51.100.4" })),
+    ).toBe("198.51.100.4");
+    expect(clientIp(req({}))).toBe("unknown");
+  });
+
+  it("rate-limits routes that don't declare a limit", async () => {
+    const handler = route({ name: "test.unlimited", auth: "none" }, async () => ({ ok: true }));
+    const call = (spoof: string) => handler(req({ "x-forwarded-for": `${spoof}, 203.0.113.50` }));
+    for (let i = 0; i < DEFAULT_RATE_LIMIT.limit; i++)
+      expect((await call(`10.0.0.${i % 250}`)).status).toBe(200);
+    // Rotating the spoofable first hop doesn't buy more requests.
+    expect((await call("10.9.9.9")).status).toBe(429);
   });
 });
 

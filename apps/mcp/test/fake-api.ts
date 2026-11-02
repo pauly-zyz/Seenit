@@ -123,7 +123,7 @@ export function fakeSeenitApi() {
         m.status = "active";
         m.onchainId = "7";
         m.chainTxHash = body.txHash;
-        return json(m);
+        return json({ mission: m }); // same shape as the real POST /api/missions/:id/confirm
       case "cancel":
         if (m.status === "pending_funding" || body.txHash) {
           m.status = "cancelled";

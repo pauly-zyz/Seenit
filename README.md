@@ -171,3 +171,10 @@ Deploying to Robinhood Chain testnet (chain ID 46630):
 ## Secrets
 
 Only `.env.example` files are committed. `.env*`, private keys, keystores and certificates are gitignored. Anything prefixed `NEXT_PUBLIC_` or `EXPO_PUBLIC_` ends up in client bundles, so never put secrets there.
+
+## Quality checks and deployment
+
+- `pnpm e2e` runs the MVP end to end on a local chain (anvil, chain id 46630) with the real deploy script, a production build of the API, Postgres, the worker, the MCP server and the mobile app's logic, plus fraud scenarios. Needs Foundry, PostgreSQL 16 binaries and ffmpeg. Report: [`docs/e2e-report.md`](docs/e2e-report.md).
+- Security review: [`docs/security-audit.md`](docs/security-audit.md).
+- Testnet deploy, production setup (Vercel, EAS, MCP hosting, Postgres/Redis) and the pre-mainnet list: [`docs/production-checklist.md`](docs/production-checklist.md).
+- After deploying contracts: `pnpm env:sync` copies the addresses into the apps' env files.

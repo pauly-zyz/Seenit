@@ -21,6 +21,8 @@ const schema = z.object({
   R2_ACCESS_KEY_ID: z.string().min(1),
   R2_SECRET_ACCESS_KEY: z.string().min(1),
   R2_BUCKET: z.string().min(1),
+  /** Only for local S3-compatible storage (emulator / MinIO). Leave unset for Cloudflare R2. */
+  R2_ENDPOINT: z.url().optional(),
 
   /** Host that SIWE messages must name, e.g. "seenit.xyz" or "localhost:3000". */
   SIWE_DOMAIN: z.string().min(1),

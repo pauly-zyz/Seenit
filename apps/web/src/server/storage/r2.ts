@@ -20,6 +20,8 @@ export interface R2Options {
   accessKeyId: string;
   secretAccessKey: string;
   bucket: string;
+  /** Override the R2 endpoint (S3-compatible emulator / MinIO in local tests). */
+  endpoint?: string;
 }
 
 /** Cloudflare R2 through its S3-compatible API. */
@@ -31,7 +33,12 @@ export class R2Storage implements MediaStorage {
     this.bucket = opts.bucket;
     this.client = new S3Client({
       region: "auto",
-      endpoint: `https://${opts.accountId}.r2.cloudflarestorage.com`,
+      endpoint: opts.endpoint ?? `https://${opts.accountId}.r2.cloudflarestorage.com`,
+      forcePathStyle: Boolean(opts.endpoint),
+      // R2 doesn't support the SDK's default flexible checksums on every operation; only send
+      // checksums when an operation requires them.
+      requestChecksumCalculation: "WHEN_REQUIRED",
+      responseChecksumValidation: "WHEN_REQUIRED",
       credentials: { accessKeyId: opts.accessKeyId, secretAccessKey: opts.secretAccessKey },
     });
   }

@@ -35,6 +35,11 @@ describe("dashboard API client", () => {
     expect(err).toMatchObject({ status: 409, code: "conflict", message: "Review window is over" });
   });
 
+  it("unwraps the confirm response ({ mission })", async () => {
+    const api = createDashboardApi(fake(200, { mission: { id: "m1", status: "active" } }).fn);
+    expect(await api.confirmMission("m1", "0xab")).toEqual({ id: "m1", status: "active" });
+  });
+
   it("builds export URLs", () => {
     expect(createDashboardApi(fake().fn).exportUrl("m1", "csv")).toBe(
       "/api/missions/m1/export?format=csv&scope=accepted",

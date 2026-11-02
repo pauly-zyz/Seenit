@@ -18,7 +18,9 @@
     "db:down": "docker compose down",
     "db:generate": "pnpm -F @seenit/db db:generate",
     "db:migrate": "pnpm -F @seenit/db db:migrate",
-    "db:studio": "pnpm -F @seenit/db db:studio"
+    "db:studio": "pnpm -F @seenit/db db:studio",
+    "env:sync": "node scripts/sync-env.mjs",
+    "e2e": "pnpm -F @seenit/e2e e2e"
   },
   "devDependencies": {
     "prettier": "^3.9.10",

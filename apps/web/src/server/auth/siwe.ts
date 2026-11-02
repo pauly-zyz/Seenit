@@ -1,4 +1,4 @@
-import { and, authNonces, eq, gt, isNull, users, type Database } from "@seenit/db";
+import { and, authNonces, eq, gt, isNull, lt, users, type Database } from "@seenit/db";
 import { getAddress, isAddressEqual, recoverMessageAddress, type Hex } from "viem";
 import { generateSiweNonce, parseSiweMessage, validateSiweMessage } from "viem/siwe";
 
@@ -11,6 +11,12 @@ export async function issueNonce(db: Database, now: Date) {
   const nonce = generateSiweNonce();
   const expiresAt = new Date(now.getTime() + NONCE_TTL_MS);
   await db.insert(authNonces).values({ nonce, expiresAt });
+  // The endpoint is public: occasionally drop nonces that expired more than a day ago.
+  if (Math.random() < 0.02) {
+    await db
+      .delete(authNonces)
+      .where(lt(authNonces.expiresAt, new Date(now.getTime() - 86_400_000)));
+  }
   return { nonce, expiresAt };
 }
 

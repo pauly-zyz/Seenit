@@ -231,8 +231,15 @@ class MissionsApi {
   }
 
   /** Activates a mission from its mined createMission transaction. */
-  confirm(missionId: string, txHash: Hex): Promise<Mission> {
-    return this.c.request("POST", `/api/missions/${enc(missionId)}/confirm`, { body: { txHash } });
+  async confirm(missionId: string, txHash: Hex): Promise<Mission> {
+    const res = await this.c.request<{ mission: Mission }>(
+      "POST",
+      `/api/missions/${enc(missionId)}/confirm`,
+      {
+        body: { txHash },
+      },
+    );
+    return res.mission;
   }
 
   status(missionId: string): Promise<MissionStatusResult> {

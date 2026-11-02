@@ -1,0 +1,28 @@
+{
+  "name": "@seenit/e2e",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "End-to-end rehearsal of the Seenit MVP on a local chain (anvil) with the real API, worker, MCP server and contributor-app logic.",
+  "scripts": {
+    "e2e": "tsx src/run.ts",
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/client": "^2.4.0",
+    "@seenit/shared": "workspace:*",
+    "@smithy/signature-v4": "^5.7.4",
+    "seenit-sdk": "workspace:*",
+    "viem": "^2.57.7"
+  },
+  "devDependencies": {
+    "@seenit/eslint-config": "workspace:*",
+    "@types/node": "catalog:",
+    "eslint": "catalog:",
+    "tsx": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}

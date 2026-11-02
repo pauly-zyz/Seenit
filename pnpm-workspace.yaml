@@ -18,3 +18,10 @@ onlyBuiltDependencies:
 ignoredBuiltDependencies:
   - sharp
   - unrs-resolver
+
+# Security patches for transitive dependencies (same major version, see docs/security-audit.md).
+overrides:
+  "underscore@<1.13.8": "^1.13.8"
+  "ws@>=8.0.0 <8.21.0": "^8.21.0"
+  "follow-redirects@<1.16.2": "^1.16.2"
+  "node-forge@<1.4.1": "^1.4.1"

@@ -216,3 +216,14 @@ describe("dashboard endpoints", () => {
     ]);
   });
 });
+
+describe("missions.confirm", () => {
+  it("unwraps the API's { mission } response", async () => {
+    const fetchFn = (async () =>
+      new Response(
+        JSON.stringify({ mission: { id: "m1", status: "active" } }),
+      )) as unknown as typeof fetch;
+    const s = new Seenit({ apiKey: "k", baseUrl: "https://x.test", fetch: fetchFn });
+    expect(await s.missions.confirm("m1", "0x01")).toEqual({ id: "m1", status: "active" });
+  });
+});

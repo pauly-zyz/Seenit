@@ -45,3 +45,4 @@ GoogleService-Info.plist
 *.log
 .DS_Store
 .vercel
+packages/contracts/deployments/local/

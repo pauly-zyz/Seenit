@@ -62,8 +62,11 @@ contract Deploy is Script {
         vm.serializeAddress(key, "rewardToken", token);
         vm.serializeAddress(key, "personhoodRegistry", registry);
         string memory json = vm.serializeAddress(key, "missionEscrow", escrow);
-        vm.writeJson(
-            json, string.concat(vm.projectRoot(), "/deployments/", vm.toString(block.chainid), ".json")
+        // DEPLOYMENTS_FILE lets local rehearsals (anvil) write elsewhere than the committed file.
+        string memory path = vm.envOr(
+            "DEPLOYMENTS_FILE",
+            string.concat(vm.projectRoot(), "/deployments/", vm.toString(block.chainid), ".json")
         );
+        vm.writeJson(json, path);
     }
 }

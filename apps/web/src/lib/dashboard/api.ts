@@ -79,8 +79,14 @@ export function createDashboardApi(fetchFn: Fetch = (...a) => fetch(...a)) {
       request<{ mission: Mission; funding: Funding }>("POST", "/api/missions", spec),
     missionStatus: (id: string) =>
       request<MissionStatusResult>("GET", `/api/missions/${encodeURIComponent(id)}/status`),
-    confirmMission: (id: string, txHash: string) =>
-      request<Mission>("POST", `/api/missions/${encodeURIComponent(id)}/confirm`, { txHash }),
+    confirmMission: async (id: string, txHash: string) =>
+      (
+        await request<{ mission: Mission }>(
+          "POST",
+          `/api/missions/${encodeURIComponent(id)}/confirm`,
+          { txHash },
+        )
+      ).mission,
     submissions: (id: string) =>
       request<SubmissionsResponse>("GET", `/api/missions/${encodeURIComponent(id)}/submissions`),
     accept: (submissionId: string) =>
