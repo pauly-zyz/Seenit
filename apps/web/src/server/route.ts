@@ -13,9 +13,10 @@ import {
 } from "./auth/funder-sessions";
 import { authenticateSession, SESSION_COOKIE } from "./auth/sessions";
 import { safeEqual } from "./crypto";
+import { ConfigError } from "./config";
 import { AppError } from "./errors";
 import { json } from "./json";
-import type { Logger } from "./logger";
+import { createLogger, type Logger } from "./logger";
 import { enforceRateLimit, type RateLimitRule } from "./rate-limit";
 import { getServices, type Services } from "./services";
 
@@ -126,6 +127,32 @@ async function authenticate(mode: AuthMode, req: Request, s: Services, now: Date
   return { auth: { user }, principal: `user:${user.id}` };
 }
 
+let configErrorLogged = false;
+
+/**
+ * Missing/invalid env: answer 503 with JSON (instead of an empty 500) and log the
+ * variable names once. The names are not sent to the client.
+ */
+function notConfigured(err: unknown, routeName: string): Response {
+  if (!(err instanceof ConfigError)) throw err;
+  if (!configErrorLogged) {
+    configErrorLogged = true;
+    createLogger().error(
+      { route: routeName, fields: err.fields },
+      "server environment is incomplete",
+    );
+  }
+  return json(
+    {
+      error: {
+        code: "not_configured",
+        message: "Seenit's server isn't configured yet. Please try again later.",
+      },
+    },
+    { status: 503, headers: { "retry-after": "60" } },
+  );
+}
+
 /**
  * Wraps a route handler with: request id, structured logging, auth, rate limiting,
  * Zod body validation and consistent JSON errors.
@@ -140,7 +167,12 @@ export function route<A extends AuthMode, B = undefined, P = Record<string, stri
     } catch {
       // outside a Next request scope (tests, scripts)
     }
-    const services = getServices();
+    let services: Services;
+    try {
+      services = getServices();
+    } catch (err) {
+      return notConfigured(err, opts.name);
+    }
     const now = services.now();
     const requestId = req.headers.get("x-request-id") ?? randomUUID();
     const url = new URL(req.url);

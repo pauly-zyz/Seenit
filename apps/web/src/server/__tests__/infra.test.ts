@@ -1,12 +1,13 @@
 // @vitest-environment node
 import { jobs, rateLimits } from "@seenit/db";
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { parseEnv } from "../config";
 import { AppError } from "../errors";
 import { claimJob, completeJob, enqueueJob, failJob } from "../jobs";
 import { enforceRateLimit } from "../rate-limit";
 import { clientIp, DEFAULT_RATE_LIMIT, route } from "../route";
+import { setServices } from "../services";
 import { createHarness, type Harness } from "../testing/harness";
 
 let h: Harness;
@@ -122,5 +123,23 @@ describe("config", () => {
       parseEnv({ ...valid, OPERATOR_PRIVATE_KEY: "0xshort", R2_BUCKET: undefined }),
     ).toThrow(/OPERATOR_PRIVATE_KEY.*R2_BUCKET|R2_BUCKET.*OPERATOR_PRIVATE_KEY/);
     expect(() => parseEnv({ ...valid, OPERATOR_PRIVATE_KEY: "0xshort" })).not.toThrow(/0xshort/);
+  });
+});
+
+describe("missing configuration", () => {
+  it("answers 503 not_configured as JSON without leaking variable names", async () => {
+    setServices(undefined);
+    vi.stubEnv("DATABASE_URL", "");
+    try {
+      const handler = route({ name: "test.unconfigured", auth: "none" }, async () => ({ ok: 1 }));
+      const res = await handler(new Request("http://x/"));
+      expect(res.status).toBe(503);
+      const body = await res.json();
+      expect(body.error.code).toBe("not_configured");
+      expect(JSON.stringify(body)).not.toMatch(/DATABASE_URL/);
+    } finally {
+      vi.unstubAllEnvs();
+      setServices(h.services);
+    }
   });
 });

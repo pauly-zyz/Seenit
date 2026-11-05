@@ -104,11 +104,18 @@ export type AppConfig = {
 
 export type ServerEnv = z.infer<typeof schema>;
 
+/** The server environment is missing or invalid (lists variable names only, never values). */
+export class ConfigError extends Error {
+  constructor(readonly fields: string[]) {
+    super(`Invalid server environment: ${fields.join("; ")}`);
+    this.name = "ConfigError";
+  }
+}
+
 export function parseEnv(env: Record<string, string | undefined> = process.env): ServerEnv {
   const result = schema.safeParse(env);
   if (!result.success) {
-    const fields = result.error.issues.map((i) => `${i.path.join(".")}: ${i.message}`).join("; ");
-    throw new Error(`Invalid server environment: ${fields}`);
+    throw new ConfigError(result.error.issues.map((i) => `${i.path.join(".")}: ${i.message}`));
   }
   return result.data;
 }
