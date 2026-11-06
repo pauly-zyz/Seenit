@@ -1,14 +1,9 @@
 import type { Metadata } from "next";
 
-import { ComingSoon } from "@/components/ui/coming-soon";
+import { ContributorApp } from "@/components/contributor/contributor-app";
 
-export const metadata: Metadata = { title: "Seenit app" };
+export const metadata: Metadata = { title: "Missions near you" };
 
 export default function Page() {
-  return (
-    <ComingSoon
-      title="Seenit app"
-      body="The contributor app for iOS and Android is in development."
-    />
-  );
+  return <ContributorApp view="missions" />;
 }

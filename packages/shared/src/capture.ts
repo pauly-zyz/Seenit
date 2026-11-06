@@ -28,7 +28,8 @@ export const captureMetadataSchema = z.object({
   }),
   videoDurationSeconds: z.number().positive().optional(),
   device: z.object({
-    platform: z.enum(["ios", "android"]),
+    /** "web" = the browser app (no mock-location signal; camera via getUserMedia). */
+    platform: z.enum(["ios", "android", "web"]),
     appVersion: z.string().min(1),
     model: z.string().max(100).optional(),
     osVersion: z.string().max(50).optional(),

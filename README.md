@@ -8,8 +8,8 @@ See [`CLAUDE.md`](./CLAUDE.md) for the product brief and engineering principles.
 
 | Path                     | What                                                              | Status                                |
 | ------------------------ | ----------------------------------------------------------------- | ------------------------------------- |
-| `apps/web`               | Next.js 16 (App Router, TypeScript, Tailwind 4)                   | placeholder page                      |
-| `apps/mobile`            | Expo SDK 58 (React Native, TypeScript)                            | contributor app + tests               |
+| `apps/web`               | Next.js 16 (App Router, TypeScript, Tailwind 4)                   | landing, API, dashboard, web app      |
+| `apps/mobile`            | Expo SDK 58 (React Native, TypeScript)                            | native contributor app (next)         |
 | `apps/mcp`               | MCP server for AI agents (`@modelcontextprotocol/server` v2)      | 6 tools, stdio + Streamable HTTP      |
 | `packages/contracts`     | Foundry: `MissionEscrow`, `PersonhoodRegistry`                    | implemented, 100% test coverage       |
 | `packages/db`            | Drizzle ORM + Postgres (`pg`)                                     | client + config, empty schema         |
@@ -61,9 +61,20 @@ pnpm db:migrate   # apply Drizzle migrations
 
 Run one app only with a filter, e.g. `pnpm dev --filter=@seenit/web` or `pnpm -F @seenit/mobile android`.
 
+### Contributor web app
+
+The contributor app ships on the web first, at `/app` in `apps/web` (the native apps follow):
+
+- `/app`: missions near you (map + list, distance filter, locked missions by tier)
+- `/app/missions/<id>`: instructions, the mission area on a map, and the in-app camera. The shutter only enables inside the radius with an accurate, fresh GPS fix; there is no file or gallery upload.
+- `/app/verify`: Human Passport (Tier 1) in place, Self (Tier 2) as a QR code / link with polling
+- `/app/history`: earnings, statuses and payout transactions
+
+Sign-in is a browser wallet + SIWE (on phones, open the site in the wallet app's browser). Camera and GPS need HTTPS (or `localhost`). For uploads from the browser, the R2 bucket needs a CORS rule allowing `PUT` with `content-type` from the site's origin. Tests: `pnpm -F @seenit/web test` (`src/components/contributor`, `src/lib/contributor`).
+
 ### Mobile
 
-The contributor app (`apps/mobile`, expo-router, routes in `src/app`):
+The native contributor app (`apps/mobile`, expo-router, routes in `src/app`):
 
 - **Onboarding**: connect a wallet with WalletConnect (Reown AppKit), then Sign-In with Ethereum against the API.
 - **Verify**: Tier 1 (Human Passport) and Tier 2 (Self) through the backend flow.

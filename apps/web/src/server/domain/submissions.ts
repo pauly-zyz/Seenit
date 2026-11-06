@@ -39,7 +39,7 @@ export const MAX_GPS_ACCURACY_METERS = CAPTURE_RULES.maxGpsAccuracyMeters;
 export const MAX_BYTES = { photo: 25 * 1024 * 1024, video: 300 * 1024 * 1024 } as const;
 export const CONTENT_TYPES = {
   photo: ["image/jpeg", "image/heic", "image/png"],
-  video: ["video/mp4", "video/quicktime"],
+  video: ["video/mp4", "video/quicktime", "video/webm"],
 } as const;
 
 async function loadActiveMission(db: Database, missionId: string, now: Date) {

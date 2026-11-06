@@ -5,5 +5,6 @@ export * from "./geo.js";
 export * from "./mission.js";
 export * from "./output-schema.js";
 export * from "./capture.js";
+export * from "./capture-gate.js";
 export * from "./abi/index.js";
 export * from "./deployments.js";

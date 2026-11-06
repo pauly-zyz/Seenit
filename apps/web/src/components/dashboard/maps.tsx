@@ -29,4 +29,9 @@ export const SubmissionsMap = dynamic(
   },
 );
 
-export type { CapturePoint, Point } from "./leaflet-maps";
+export const NearbyMap = dynamic(() => import("./leaflet-maps").then((m) => m.NearbyMap), {
+  ssr: false,
+  loading: placeholder("h-72"),
+});
+
+export type { CapturePoint, MissionPin, Point } from "./leaflet-maps";

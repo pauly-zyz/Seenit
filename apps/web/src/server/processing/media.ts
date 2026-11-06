@@ -157,10 +157,33 @@ export class FfmpegMediaToolkit implements MediaToolkit {
     };
     const video = info.streams?.find((s) => s.codec_type === "video");
     if (!video) throw new UnreadableMediaError("File has no video stream");
-    const duration = Number(info.format?.duration ?? video.duration);
+    let duration = Number(info.format?.duration ?? video.duration);
+    // Browser recordings (MediaRecorder WebM / fragmented MP4) often have no duration in the
+    // header: read it from the last video packet instead.
+    if (!Number.isFinite(duration) || duration <= 0) duration = await this.lastPacketTime(path);
     if (!Number.isFinite(duration) || duration <= 0)
       throw new UnreadableMediaError("Video has no duration");
     return duration;
+  }
+
+  private async lastPacketTime(path: string): Promise<number> {
+    const out = await run(this.opts.ffprobePath, [
+      "-v",
+      "error",
+      "-select_streams",
+      "v:0",
+      "-show_entries",
+      "packet=pts_time,duration_time",
+      "-of",
+      "csv=p=0",
+      path,
+    ]).catch(() => Buffer.alloc(0));
+    let end = 0;
+    for (const line of out.toString("utf8").split("\n")) {
+      const [pts = NaN, dur = NaN] = line.split(",").map(Number);
+      if (Number.isFinite(pts)) end = Math.max(end, pts + (Number.isFinite(dur) ? dur : 0));
+    }
+    return end;
   }
 
   async measure(jpeg: Buffer): Promise<FrameQuality> {

@@ -20,6 +20,7 @@ import {
   SCENE,
   storefrontJpeg,
   storefrontJpegWithExif,
+  streamedWebm,
 } from "../testing/media-fixtures";
 
 const media = new FfmpegMediaToolkit({ ...DEFAULT_MEDIA_OPTIONS, blurThreshold: 30 });
@@ -89,6 +90,14 @@ describe("FfmpegMediaToolkit.extract", () => {
     expect(frames.map((f) => f.atSeconds)).toEqual([2, 6, 10]);
     expect(frames.map((f) => f.index)).toEqual([0, 1, 2]);
     for (const f of frames) expect((await sharp(f.jpeg).metadata()).width).toBe(640);
+  });
+
+  it("reads browser recordings whose container has no duration (MediaRecorder WebM)", async () => {
+    const p = join(dir, "browser.webm");
+    await streamedWebm(p, 8);
+    const { frames, durationSeconds } = await media.extract(p, "video");
+    expect(durationSeconds).toBeCloseTo(8, 0);
+    expect(frames).toHaveLength(2);
   });
 
   it("caps the number of video frames", async () => {

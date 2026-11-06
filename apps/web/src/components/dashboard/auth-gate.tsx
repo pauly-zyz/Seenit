@@ -59,10 +59,41 @@ function hasBrowserWallet(connectors: readonly Connector[]) {
   );
 }
 
-/** Connect a browser wallet, then Sign-In with Ethereum (free, no transaction). */
+/** Funder dashboard sign-in. */
 export function SignIn() {
   const api = useDashboardApi();
   const qc = useQueryClient();
+  return (
+    <WalletSignIn
+      eyebrow="Funder dashboard"
+      title="Sign in with your wallet"
+      body="Your wallet is your account. Missions you fund from it show up here, and it receives any refunds."
+      statement="Sign in to the Seenit dashboard. This is free and sends no transaction."
+      nonce={api.nonce}
+      verify={async (message, signature) => {
+        await api.signIn(message, signature);
+        await qc.invalidateQueries({ queryKey: ["me"] });
+      }}
+    />
+  );
+}
+
+/** Connect a browser wallet, then Sign-In with Ethereum (free, no transaction). */
+export function WalletSignIn({
+  eyebrow,
+  title,
+  body,
+  statement,
+  nonce: getNonce,
+  verify,
+}: {
+  eyebrow: string;
+  title: string;
+  body: string;
+  statement: string;
+  nonce: () => Promise<{ nonce: string; domain: string; chainId: number }>;
+  verify: (message: string, signature: string) => Promise<void>;
+}) {
   const { address, isConnected } = useConnection();
   // EIP-6963 adds one connector per installed wallet at runtime, next to the generic injected one.
   const connectors: readonly Connector[] = useConnectors();
@@ -77,7 +108,7 @@ export function SignIn() {
     setBusy(true);
     setError(null);
     try {
-      const { nonce, domain, chainId } = await api.nonce();
+      const { nonce, domain, chainId } = await getNonce();
       const message = createSiweMessage({
         address,
         chainId,
@@ -85,12 +116,11 @@ export function SignIn() {
         nonce,
         uri: window.location.origin,
         version: "1",
-        statement: "Sign in to the Seenit dashboard. This is free and sends no transaction.",
+        statement,
         issuedAt: new Date(),
       });
       const signature = await sign.mutateAsync({ message });
-      await api.signIn(message, signature);
-      await qc.invalidateQueries({ queryKey: ["me"] });
+      await verify(message, signature);
     } catch (err) {
       setError(errorMessage(err));
     } finally {
@@ -103,13 +133,10 @@ export function SignIn() {
       <Card className="flex flex-col gap-4 p-7">
         <div>
           <p className="text-xs font-semibold tracking-widest text-accent-ink uppercase">
-            Funder dashboard
+            {eyebrow}
           </p>
-          <h1 className="mt-2 text-2xl font-semibold tracking-tight">Sign in with your wallet</h1>
-          <p className="mt-2 text-sm text-muted">
-            Your wallet is your account. Missions you fund from it show up here, and it receives any
-            refunds.
-          </p>
+          <h1 className="mt-2 text-2xl font-semibold tracking-tight">{title}</h1>
+          <p className="mt-2 text-sm text-muted">{body}</p>
         </div>
         {error ? <Notice tone="error">{error}</Notice> : null}
         {isConnected && address ? (
@@ -126,7 +153,8 @@ export function SignIn() {
           </>
         ) : connectors.length === 0 || !hasBrowserWallet(connectors) ? (
           <Notice tone="warn">
-            No browser wallet found. Install a wallet extension such as MetaMask or Rabby.
+            No browser wallet found. Install a wallet extension such as MetaMask or Rabby, or on a
+            phone open this page in your wallet app&apos;s browser.
           </Notice>
         ) : (
           <div className="flex flex-col gap-2">

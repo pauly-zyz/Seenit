@@ -127,3 +127,62 @@ export function SubmissionsMap({
     </MapContainer>
   );
 }
+
+export interface MissionPin extends Point {
+  id: string;
+  label: string;
+  radius: number;
+  locked: boolean;
+}
+
+/** Contributor app: missions around you (tap one to open it) and your own position. */
+export function NearbyMap({
+  you,
+  missions,
+  onSelect,
+}: {
+  you: Point;
+  missions: MissionPin[];
+  onSelect: (id: string) => void;
+}) {
+  return (
+    <MapContainer center={[you.lat, you.lng]} zoom={14} className="h-72 w-full rounded-xl">
+      <TileLayer url={TILE_URL} attribution={ATTRIBUTION} />
+      <Recenter center={you} />
+      {missions.map((m) => (
+        <span key={m.id}>
+          <Circle
+            center={[m.lat, m.lng]}
+            radius={m.radius}
+            pathOptions={{
+              color: m.locked ? "#8a8f98" : "#496600",
+              fillColor: m.locked ? "#8a8f98" : "#c8f051",
+              fillOpacity: 0.25,
+            }}
+            eventHandlers={{ click: () => onSelect(m.id) }}
+          />
+          <CircleMarker
+            center={[m.lat, m.lng]}
+            radius={7}
+            pathOptions={{
+              color: "#ffffff",
+              weight: 2,
+              fillColor: m.locked ? "#8a8f98" : "#496600",
+              fillOpacity: 1,
+            }}
+            eventHandlers={{ click: () => onSelect(m.id) }}
+          >
+            <Tooltip>{m.label}</Tooltip>
+          </CircleMarker>
+        </span>
+      ))}
+      <CircleMarker
+        center={[you.lat, you.lng]}
+        radius={7}
+        pathOptions={{ color: "#ffffff", weight: 3, fillColor: "#2563eb", fillOpacity: 1 }}
+      >
+        <Tooltip>You</Tooltip>
+      </CircleMarker>
+    </MapContainer>
+  );
+}

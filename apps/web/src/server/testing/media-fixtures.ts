@@ -85,3 +85,33 @@ export async function dummyVideo(path: string, seconds = 8) {
     path,
   ]);
 }
+
+/**
+ * A VP8 WebM written as a stream (like the browser's MediaRecorder): the container has no
+ * duration header, so the toolkit must read it from the packets.
+ */
+export async function streamedWebm(path: string, seconds = 8) {
+  const { stdout } = await exec(
+    "ffmpeg",
+    [
+      "-v",
+      "error",
+      "-f",
+      "lavfi",
+      "-i",
+      `testsrc2=size=640x360:rate=15:duration=${seconds}`,
+      "-c:v",
+      "libvpx",
+      "-deadline",
+      "realtime",
+      "-b:v",
+      "300k",
+      "-f",
+      "webm",
+      "pipe:1",
+    ],
+    { encoding: "buffer", maxBuffer: 64 * 1024 * 1024 },
+  );
+  const { writeFile } = await import("node:fs/promises");
+  await writeFile(path, stdout);
+}

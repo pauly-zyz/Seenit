@@ -13,7 +13,7 @@ const nextConfig: NextConfig = {
       // The dashboard may ask for the browser's location ("Use my location"); nothing else.
       {
         key: "Permissions-Policy",
-        value: "camera=(), microphone=(), geolocation=(self), payment=()",
+        value: "camera=(self), microphone=(), geolocation=(self), payment=()",
       },
     ];
     return [

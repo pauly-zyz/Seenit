@@ -50,7 +50,7 @@ No secret was found in the tree or the history (only `.env.example` files are tr
 
 On-chain, the contracts enforce the same rules independently: only `OPERATOR_ROLE` records/resolves, only the funder or operator accepts/rejects, only verified wallets can be recorded (`NotVerified`), one nullifier per wallet forever (`NullifierBoundToOtherWallet`), each submission resolves once (`NotPending`). The E2E run calls the contracts directly to prove these hold even if the API is bypassed.
 
-**Open (low):** contributor endpoints also accept the session cookie (SameSite=Lax) without the CSRF header. There is no contributor web UI today; either drop cookie auth for contributor routes or require the CSRF header before adding one.
+**Fixed (with the contributor web app):** contributor endpoints accept the session cookie only with the `x-seenit-csrf: 1` header on writes, like the funder dashboard (`route.ts`, tested in `auth.test.ts`). The mobile app keeps using the Bearer token.
 
 ### Rate limiting
 

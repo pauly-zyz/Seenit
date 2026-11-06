@@ -84,15 +84,24 @@ describe("POST /api/auth/verify", () => {
     expect(authed.status).toBe(400);
   });
 
-  it("accepts the session from the cookie too", async () => {
+  it("accepts the session from the cookie too, with the CSRF header on writes", async () => {
     const { message, signature } = await signIn();
     const res = await call(verify, { path: "/api/auth/verify", body: { message, signature } });
+    const cookie = `other=1; seenit_session=${res.json.token}`;
     const authed = await call(uploadUrl, {
       path: "/api/submissions/upload-url",
-      headers: { cookie: `other=1; seenit_session=${res.json.token}` },
+      headers: { cookie, "x-seenit-csrf": "1" },
       body: {},
     });
     expect(authed.status).toBe(400);
+
+    // A cross-site form can carry the cookie but not a custom header.
+    const forged = await call(uploadUrl, {
+      path: "/api/submissions/upload-url",
+      headers: { cookie },
+      body: {},
+    });
+    expect(forged.status).toBe(403);
   });
 
   it("signing in twice reuses the same user", async () => {

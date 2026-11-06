@@ -121,9 +121,14 @@ async function authenticate(mode: AuthMode, req: Request, s: Services, now: Date
     }
     return { auth: { funder }, principal: `funder:${funder.id}` };
   }
-  const token = bearer(req) ?? cookie(req, SESSION_COOKIE);
+  const bearerToken = bearer(req);
+  const token = bearerToken ?? cookie(req, SESSION_COOKIE);
   const user = token ? await authenticateSession(s.db, token, now) : null;
   if (!user) throw new AppError("unauthorized", "Sign in with Ethereum first");
+  // The web app authenticates with the session cookie: same CSRF rule as the funder dashboard.
+  if (!bearerToken && !SAFE_METHODS.has(req.method) && req.headers.get(CSRF_HEADER) !== "1") {
+    throw new AppError("forbidden", `Missing ${CSRF_HEADER} header`);
+  }
   return { auth: { user }, principal: `user:${user.id}` };
 }
 

@@ -28,7 +28,7 @@ Not done from the build environment: it needs a funded deployer key, and the off
 - [ ] Vercel project with root directory `apps/web`. `apps/web/vercel.json` installs the whole workspace (rewriting `git@github.com:` to https, for two git-pinned dependencies of the Self SDK) and builds with `pnpm turbo run build --filter=@seenit/web`.
 - [ ] All server env vars from `apps/web/.env.example` in the Production environment (database, chain, keys, R2, SIWE domain = the production host, `CRON_SECRET` ≥ 32 chars, Human Passport, Self, `MEDIA_ENCRYPTION_KEYS`). `WEBHOOK_ALLOW_HTTP=false`. Never put secrets in `NEXT_PUBLIC_*`.
 - [ ] `apps/web/vercel.json` sets the monorepo build (turbo builds the workspace packages first) and a **daily** `/api/cron/indexer` cron (Vercel sends `Authorization: Bearer $CRON_SECRET`); daily is the Hobby-plan limit. The API applies chain events itself right after each transaction, so the cron only catches up on events from other senders (permissionless `finalize`/`refund`, wallet-signed cancels). For minute-level catch-up use a paid plan (`* * * * *`) or run `pnpm -F @seenit/web indexer` next to the worker.
-- [ ] Self callback endpoint must be public https (`SELF_ENDPOINT`), and `SELF_MOCK_PASSPORT=false` in production.
+- [ ] Self callback endpoint must be public https (`SELF_ENDPOINT`), and `SELF_MOCK_PASSPORT=false` in production. The web app (`/app/verify`) shows the Self request as a QR code and polls; `SELF_DEEPLINK_CALLBACK` only matters for the mobile app.
 - [ ] Custom domain + HTTPS; check the security headers (`next.config.ts`) and that `x-real-ip` reaches the app.
 - [ ] Vercel functions open Postgres connections per instance: use the provider's pooled connection string.
 
@@ -61,8 +61,17 @@ The MVP needs **no** Redis: the job queue, rate limits and indexer cursor live i
 ### Storage (Cloudflare R2)
 
 - [ ] Private bucket (no public bucket/dev URL); token scoped to that bucket with object read/write.
-- [ ] CORS only if a browser uploads (`PUT` from the app origin); the mobile app uploads directly with presigned URLs.
+- [ ] CORS for the web app (`/app` uploads from the browser): allow `PUT` from the production origin (e.g. `https://seenit-web.vercel.app`) with the `content-type` header. Nothing else (no `GET`, no `*` origin). The mobile app doesn't need CORS.
 - [ ] Lifecycle rule on `submissions/*/original` for uploads that were never processed (precheck failures) and a retention decision for `blurred/`.
+
+### Contributor web app (`/app`)
+
+The contributor app ships on the web first (same Vercel deployment); the native apps follow.
+
+- [ ] Served over HTTPS only (camera and precise location need a secure origin). `Permissions-Policy` allows `camera=(self)` and `geolocation=(self)`, microphone stays off (videos are recorded without audio).
+- [ ] Contributors sign in with a browser wallet: on phones, from the wallet app's built-in browser (MetaMask, Coinbase Wallet, Rabby). Add WalletConnect / Reown for other browsers before a wide launch.
+- [ ] Browsers give no mock-location signal: web captures are tagged `device.platform = "web"` so funders and fraud monitoring can tell them apart. Consider allowing only lower-value missions from web captures until device attestation exists.
+- [ ] Test on real phones: Android Chrome (MP4 or WebM recording), iOS Safari (MP4), and inside wallet in-app browsers.
 
 ### Mobile (EAS)
 
